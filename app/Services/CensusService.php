@@ -67,10 +67,10 @@ final class CensusService
         return ['created'=>$created,'errors'=>$errors];
     }
 
-    public static function generateInvitation(int $memberId): string
+    public static function generateInvitation(int $memberId): array
     {
         $pdo=Database::connection();
-        $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status FROM census_members WHERE id=:id');
+        $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status,email FROM census_members WHERE id=:id');
         $stmt->execute(['id'=>$memberId]);
         $member=$stmt->fetch(PDO::FETCH_ASSOC);
         if (!$member || $member['status']!=='eligible' || (int)$member['has_voted']===1) {
@@ -78,11 +78,13 @@ final class CensusService
         }
         $raw=bin2hex(random_bytes(32));
         $hash=hash('sha256',$raw);
+        $otp=(string)random_int(100000,999999);
+        $otpHash=password_hash($otp,PASSWORD_DEFAULT);
         $pdo->prepare('DELETE FROM voter_tokens WHERE census_member_id=:id AND consumed_at IS NULL')->execute(['id'=>$memberId]);
-        $pdo->prepare('INSERT INTO voter_tokens (election_id,census_member_id,token_hash,created_at) VALUES (:election_id,:member_id,:token_hash,NOW())')->execute([
-            'election_id'=>(int)$member['election_id'],'member_id'=>$memberId,'token_hash'=>$hash
+        $pdo->prepare('INSERT INTO voter_tokens (election_id,census_member_id,token_hash,otp_hash,otp_expires_at,created_at) VALUES (:election_id,:member_id,:token_hash,:otp_hash,DATE_ADD(NOW(),INTERVAL 10 MINUTE),NOW())')->execute([
+            'election_id'=>(int)$member['election_id'],'member_id'=>$memberId,'token_hash'=>$hash,'otp_hash'=>$otpHash
         ]);
-        Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>(int)$member['election_id']]);
-        return $raw;
+        Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>(int)$member['election_id'],'channel'=>'demo']);
+        return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email']];
     }
 }
