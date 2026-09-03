@@ -1,0 +1,62 @@
+name: MVP Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  mvp-smoke:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: test
+      APP_DEBUG: true
+      APP_URL: http://127.0.0.1:8080
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: inaudis_vote
+      DB_USER: root
+      DB_PASSWORD: root
+      OTP_TTL_SECONDS: 300
+      SESSION_TTL_MINUTES: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -uroot -proot --silent && break
+            sleep 2
+          done
+
+      - name: Load schema
+        run: mysql -h 127.0.0.1 -uroot -proot < database/schema.sql
+
+      - name: Load demo data
+        run: mysql -h 127.0.0.1 -uroot -proot < database/seed_demo.sql
+
+      - name: Run PHP lint
+        run: find app config public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run MVP smoke test
+        run: php tests/mvp_smoke.php
