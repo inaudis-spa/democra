@@ -8,7 +8,7 @@ ALTER TABLE elections
   ADD COLUMN ballot_locked_at DATETIME NULL AFTER allow_weighted_vote,
   ADD COLUMN census_locked_at DATETIME NULL AFTER ballot_locked_at;
 
-CREATE TABLE election_documents (
+CREATE TABLE IF NOT EXISTS election_documents (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   election_id BIGINT UNSIGNED NOT NULL,
   title VARCHAR(180) NOT NULL,

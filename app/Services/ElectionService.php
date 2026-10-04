@@ -7,6 +7,7 @@ namespace InaudisVote\Services;
 use InaudisVote\Core\Audit;
 use InaudisVote\Core\Database;
 use PDO;
+use DateTimeImmutable;
 
 final class ElectionService
 {
@@ -36,9 +37,15 @@ final class ElectionService
         $title = trim((string) ($data['title'] ?? ''));
         $organizationId = (int) ($data['organization_id'] ?? 0);
         if ($title === '' || $organizationId <= 0) throw new \InvalidArgumentException('Organización y título son obligatorios.');
+        if (mb_strlen($title) > 180) throw new \InvalidArgumentException('El título no puede superar 180 caracteres.');
+        $org=$pdo->prepare("SELECT COUNT(*) FROM organizations WHERE id=:id AND status='active'");$org->execute(['id'=>$organizationId]);
+        if(!(int)$org->fetchColumn()) throw new \InvalidArgumentException('La organización seleccionada no existe o está inactiva.');
+        $startsAt=trim((string)($data['starts_at']??''));$endsAt=trim((string)($data['ends_at']??''));
+        try{$start=$startsAt!==''?new DateTimeImmutable($startsAt):null;$end=$endsAt!==''?new DateTimeImmutable($endsAt):null;}catch(\Throwable){throw new \InvalidArgumentException('Las fechas ingresadas no son válidas.');}
+        if($start&&$end&&$end<=$start) throw new \InvalidArgumentException('La fecha de término debe ser posterior a la fecha de inicio.');
         $mode = in_array(($data['voting_mode'] ?? 'secret'), ['secret','public'], true) ? $data['voting_mode'] : 'secret';
         $stmt = $pdo->prepare('INSERT INTO elections (organization_id,title,description,voting_mode,status,starts_at,ends_at,allow_weighted_vote,created_by) VALUES (:organization_id,:title,:description,:voting_mode,:status,:starts_at,:ends_at,:weighted,:created_by)');
-        $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'status'=>'draft','starts_at'=>($data['starts_at']??'')?:null,'ends_at'=>($data['ends_at']??'')?:null,'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
+        $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'status'=>'draft','starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
         $id=(int)$pdo->lastInsertId();
         Audit::log('election.created','election',$id,['title'=>$title,'mode'=>$mode]);
         return $id;

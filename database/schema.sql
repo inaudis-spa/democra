@@ -10,6 +10,8 @@ CREATE TABLE organizations (
     tax_id VARCHAR(32) NULL,
     slug VARCHAR(120) NOT NULL UNIQUE,
     logo_path VARCHAR(255) NULL,
+    primary_color VARCHAR(7) NULL,
+    secondary_color VARCHAR(7) NULL,
     status ENUM('active','inactive') NOT NULL DEFAULT 'active',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -40,11 +42,25 @@ CREATE TABLE elections (
     starts_at DATETIME NULL,
     ends_at DATETIME NULL,
     allow_weighted_vote TINYINT(1) NOT NULL DEFAULT 0,
+    ballot_locked_at DATETIME NULL,
+    census_locked_at DATETIME NULL,
     created_by BIGINT UNSIGNED NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_elections_organization FOREIGN KEY (organization_id) REFERENCES organizations(id),
     CONSTRAINT fk_elections_creator FOREIGN KEY (created_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE election_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    election_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(180) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(120) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_election_documents_election
+        FOREIGN KEY (election_id) REFERENCES elections(id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE census_members (
