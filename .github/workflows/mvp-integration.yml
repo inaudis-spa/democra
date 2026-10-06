@@ -60,3 +60,6 @@ jobs:
 
       - name: Run MVP smoke test
         run: php tests/mvp_smoke.php
+
+      - name: Run flow regression test
+        run: php tests/flow_regression.php
