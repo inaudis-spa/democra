@@ -22,6 +22,7 @@ $pdo = Database::connection();
 
 $electionId = (int) $pdo->query("SELECT id FROM elections WHERE title='Elección Directorio Demo 2026' ORDER BY id DESC LIMIT 1")->fetchColumn();
 ok($electionId > 0, 'elección demo disponible');
+$pdo->exec("UPDATE elections SET status='open', starts_at=NULL, ends_at=NULL WHERE id={$electionId}");
 
 $memberId = (int) $pdo->query("SELECT id FROM census_members WHERE election_id={$electionId} ORDER BY id LIMIT 1")->fetchColumn();
 ok($memberId > 0, 'votante demo disponible');
