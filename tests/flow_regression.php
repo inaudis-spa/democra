@@ -7,6 +7,8 @@ use InaudisVote\Services\ElectionService;
 use InaudisVote\Services\OrganizationService;
 use InaudisVote\Services\LiveControlService;
 use InaudisVote\Services\UserService;
+use InaudisVote\Services\WitnessService;
+use InaudisVote\Core\Authorization;
 function assertFlow(bool $condition,string $message):void{if(!$condition)throw new RuntimeException('FAIL: '.$message);echo "PASS: {$message}\n";}
 $pdo=Database::connection();$suffix=substr(bin2hex(random_bytes(4)),0,8);$organizationId=0;$userId=0;$electionId=0;
 try{
@@ -20,8 +22,15 @@ try{
     $electionId=ElectionService::create(['organization_id'=>$organizationId,'title'=>'Elección Flujo '.$suffix,'voting_mode'=>'secret'],$userId);
     $questionId=ElectionService::addQuestion($electionId,['text'=>'¿Aprueba esta prueba?','options'=>"Sí\nNo",'question_type'=>'single']);
     assertFlow($questionId>0,'votación y pregunta creadas');
+    $witnessId=UserService::create(['name'=>'Ministro Prueba','email'=>'ministro-'.$suffix.'@inaudis.local','password'=>'Prueba2026!','role'=>'witness','organization_id'=>$organizationId]);
+    WitnessService::assign($electionId,$witnessId,$userId);
+    assertFlow(WitnessService::isAssigned($electionId,$witnessId),'Ministro de Fe asignado a la votación');
+    $witnessUser=['id'=>$witnessId,'role'=>'witness','organization_id'=>$organizationId];
+    assertFlow(Authorization::canReviewElection($witnessUser,$electionId,$organizationId),'Ministro de Fe puede fiscalizar elección asignada');
+    assertFlow(!Authorization::canManageElection($witnessUser,$organizationId),'Ministro de Fe no adquiere permisos de administración');
     $memberId=CensusService::add($electionId,['name'=>'Votante Prueba','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);
     try{CensusService::add($electionId,['name'=>'Duplicado','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);assertFlow(false,'votante duplicado rechazado');}catch(InvalidArgumentException $e){assertFlow(str_contains($e->getMessage(),'ya está'),'votante duplicado entrega mensaje claro');}
+    $hash=WitnessService::checkpoint($electionId,'setup_reviewed',$witnessId);assertFlow(strlen($hash)===64,'Ministro de Fe genera evidencia SHA-256');
     ElectionService::setStatus($electionId,'open');$invitation=CensusService::generateInvitation($memberId);
     assertFlow(strlen($invitation['otp'])===6&&$invitation['expires_in_seconds']>0,'invitación genera OTP con vigencia configurable');
     LiveControlService::setCurrentQuestion($electionId,$questionId,$userId);$live=LiveControlService::snapshot($electionId);
@@ -32,6 +41,7 @@ try{
     echo "FLOW_REGRESSION: PASS\n";
 }finally{
     if($electionId)$pdo->prepare('DELETE FROM elections WHERE id=:id')->execute(['id'=>$electionId]);
+    if(isset($witnessId)&&$witnessId)$pdo->prepare('DELETE FROM users WHERE id=:id')->execute(['id'=>$witnessId]);
     if($userId)$pdo->prepare('DELETE FROM users WHERE id=:id')->execute(['id'=>$userId]);
     if($organizationId)$pdo->prepare('DELETE FROM organizations WHERE id=:id')->execute(['id'=>$organizationId]);
 }
