@@ -5,6 +5,7 @@ use InaudisVote\Core\Database;
 use InaudisVote\Services\CensusService;
 use InaudisVote\Services\ElectionService;
 use InaudisVote\Services\OrganizationService;
+use InaudisVote\Services\LiveControlService;
 use InaudisVote\Services\UserService;
 function assertFlow(bool $condition,string $message):void{if(!$condition)throw new RuntimeException('FAIL: '.$message);echo "PASS: {$message}\n";}
 $pdo=Database::connection();$suffix=substr(bin2hex(random_bytes(4)),0,8);$organizationId=0;$userId=0;$electionId=0;
@@ -23,6 +24,11 @@ try{
     try{CensusService::add($electionId,['name'=>'Duplicado','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);assertFlow(false,'votante duplicado rechazado');}catch(InvalidArgumentException $e){assertFlow(str_contains($e->getMessage(),'ya está'),'votante duplicado entrega mensaje claro');}
     ElectionService::setStatus($electionId,'open');$invitation=CensusService::generateInvitation($memberId);
     assertFlow(strlen($invitation['otp'])===6&&$invitation['expires_in_seconds']===600,'invitación genera OTP válido por 10 minutos');
+    LiveControlService::setCurrentQuestion($electionId,$questionId,$userId);$live=LiveControlService::snapshot($electionId);
+    assertFlow($live['current_question_id']===$questionId,'control en vivo proyecta una pregunta válida');
+    assertFlow($live['eligible']===1&&$live['voted']===0,'control en vivo calcula participación');
+    LiveControlService::setDisplayResults($electionId,true,$userId);$live=LiveControlService::snapshot($electionId);
+    assertFlow($live['display_results']===true,'control en vivo gestiona visibilidad de resultados');
     echo "FLOW_REGRESSION: PASS\n";
 }finally{
     if($electionId)$pdo->prepare('DELETE FROM elections WHERE id=:id')->execute(['id'=>$electionId]);
