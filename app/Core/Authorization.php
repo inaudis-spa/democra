@@ -29,6 +29,17 @@ final class Authorization
         return $user;
     }
 
+    public static function canReviewElection(array $user, int $electionId, int $organizationId): bool
+    {
+        if (in_array(($user['role'] ?? null), ['admin','organizer'], true)) {
+            return self::canManageElection($user, $organizationId);
+        }
+        if (($user['role'] ?? null) !== 'witness') return false;
+        $stmt=Database::connection()->prepare('SELECT COUNT(*) FROM election_witnesses WHERE election_id=:eid AND user_id=:uid');
+        $stmt->execute(['eid'=>$electionId,'uid'=>(int)($user['id']??0)]);
+        return (bool)$stmt->fetchColumn();
+    }
+
     public static function canManageElection(array $user, int $organizationId): bool
     {
         if (($user['role'] ?? null) === 'admin') {
