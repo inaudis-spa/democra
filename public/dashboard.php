@@ -7,9 +7,9 @@ use InaudisVote\Core\Authorization;
 use InaudisVote\Core\Database;
 use InaudisVote\Services\ElectionService;
 
-$user=Authorization::requireRoles(['admin','organizer']);
+$user=Authorization::requireRoles(['admin','organizer','witness']);
 $pdo=Database::connection();
-if($user['role']==='admin'){
+if($user['role']==='witness'){header('Location: /elections.php');exit;}elseif($user['role']==='admin'){
     $organizations=(int)$pdo->query('SELECT COUNT(*) FROM organizations')->fetchColumn();
     $active=(int)$pdo->query("SELECT COUNT(*) FROM elections WHERE status='open'")->fetchColumn();
     $members=(int)$pdo->query('SELECT COUNT(*) FROM census_members')->fetchColumn();
