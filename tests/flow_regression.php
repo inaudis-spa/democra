@@ -23,7 +23,7 @@ try{
     $memberId=CensusService::add($electionId,['name'=>'Votante Prueba','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);
     try{CensusService::add($electionId,['name'=>'Duplicado','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);assertFlow(false,'votante duplicado rechazado');}catch(InvalidArgumentException $e){assertFlow(str_contains($e->getMessage(),'ya está'),'votante duplicado entrega mensaje claro');}
     ElectionService::setStatus($electionId,'open');$invitation=CensusService::generateInvitation($memberId);
-    assertFlow(strlen($invitation['otp'])===6&&$invitation['expires_in_seconds']===600,'invitación genera OTP válido por 10 minutos');
+    assertFlow(strlen($invitation['otp'])===6&&$invitation['expires_in_seconds']>0,'invitación genera OTP con vigencia configurable');
     LiveControlService::setCurrentQuestion($electionId,$questionId,$userId);$live=LiveControlService::snapshot($electionId);
     assertFlow($live['current_question_id']===$questionId,'control en vivo proyecta una pregunta válida');
     assertFlow($live['eligible']===1&&$live['voted']===0,'control en vivo calcula participación');
