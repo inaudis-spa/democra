@@ -3,9 +3,11 @@ declare(strict_types=1);
 require dirname(__DIR__).'/config/bootstrap.php';
 use InaudisVote\Core\Authorization;
 use InaudisVote\Core\Database;
-$user=Authorization::requireRoles(['admin','organizer']);
+$user=Authorization::requireRoles(['admin','organizer','witness']);
 $pdo=Database::connection();
-if($user['role']==='admin'){
+if($user['role']==='witness'){
+    $stmt=$pdo->prepare('SELECT DISTINCT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id JOIN election_witnesses ew ON ew.user_id=:uid WHERE (a.entity_type="election" AND a.entity_id=ew.election_id) OR JSON_EXTRACT(a.metadata,"$.election_id")=ew.election_id ORDER BY a.created_at DESC LIMIT 200');$stmt->execute(['uid'=>$user['id']]);
+}elseif($user['role']==='admin'){
     $stmt=$pdo->query('SELECT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 200');
 }else{
     $stmt=$pdo->prepare(
