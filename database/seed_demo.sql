@@ -11,9 +11,14 @@ SET @admin_id = LAST_INSERT_ID();
 INSERT INTO users (organization_id,name,email,password_hash,role,status)
 VALUES (@org_id,'Organizador Demo','organizador@inaudis.local','$2y$12$lPGjdpXrDFvgaJeS98/geuk8MwDeayRLCdhW3PQBwmND37E2JDCsO','organizer','active');
 
+INSERT INTO users (organization_id,name,email,password_hash,role,status)
+VALUES (@org_id,'Ministro de Fe Demo','ministro@inaudis.local','$2y$12$lPGjdpXrDFvgaJeS98/geuk8MwDeayRLCdhW3PQBwmND37E2JDCsO','witness','active');
+SET @witness_id = LAST_INSERT_ID();
+
 INSERT INTO elections (organization_id,title,description,voting_mode,status,starts_at,ends_at,allow_weighted_vote,created_by)
 VALUES (@org_id,'Elección Directorio Demo 2026','Proceso de demostración de punta a punta para INAUDIS Vote.','secret','open',DATE_SUB(NOW(),INTERVAL 1 HOUR),DATE_ADD(NOW(),INTERVAL 7 DAY),0,@admin_id);
 SET @election_id = LAST_INSERT_ID();
+INSERT INTO election_witnesses (election_id,user_id,assigned_by) VALUES (@election_id,@witness_id,@admin_id);
 
 INSERT INTO questions (election_id,text,question_type,min_choices,max_choices,sort_order)
 VALUES (@election_id,'¿Quién debe asumir la presidencia del directorio?','single',1,1,1);
@@ -30,4 +35,5 @@ INSERT INTO census_members (election_id,rut,name,email,phone,vote_weight,segment
 -- Credenciales demo (solo ambiente local):
 -- admin@inaudis.local / Demo2026!
 -- organizador@inaudis.local / Demo2026!
+-- ministro@inaudis.local / Demo2026!
 -- Cambiar/eliminar estas credenciales antes de cualquier despliegue real.
