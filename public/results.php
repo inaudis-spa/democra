@@ -5,7 +5,7 @@ use InaudisVote\Core\Authorization;
 use InaudisVote\Core\Csrf;
 use InaudisVote\Services\ElectionService;
 use InaudisVote\Services\ResultService;
-$user=Authorization::requireRoles(['admin','organizer']);
+$user=Authorization::requireRoles(['admin','organizer','witness']);
 $electionId=(int)($_GET['election_id']??0);
 $election=ElectionService::find($electionId);
 if(!$election||!Authorization::canManageElection($user,(int)$election['organization_id'])){http_response_code(404);exit('Votación no encontrada.');}
