@@ -17,8 +17,8 @@ final class ElectionService
         if (($user['role'] ?? null) === 'admin') {
             $stmt = $pdo->query('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id ORDER BY e.created_at DESC');
         } else {
-            $stmt = $pdo->prepare('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id WHERE e.organization_id=:organization_id ORDER BY e.created_at DESC');
-            $stmt->execute(['organization_id' => (int) ($user['organization_id'] ?? 0)]);
+            $stmt = $pdo->prepare('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id JOIN election_managers em ON em.election_id=e.id WHERE em.user_id=:user_id ORDER BY e.created_at DESC');
+            $stmt->execute(['user_id' => (int) ($user['id'] ?? 0)]);
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -47,6 +47,11 @@ final class ElectionService
         $stmt = $pdo->prepare('INSERT INTO elections (organization_id,title,description,voting_mode,status,starts_at,ends_at,allow_weighted_vote,created_by) VALUES (:organization_id,:title,:description,:voting_mode,:status,:starts_at,:ends_at,:weighted,:created_by)');
         $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'status'=>'draft','starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
         $id=(int)$pdo->lastInsertId();
+        $creatorRole=$pdo->prepare('SELECT role FROM users WHERE id=:id');$creatorRole->execute(['id'=>$createdBy]);
+        if($creatorRole->fetchColumn()==='organizer'){
+            $assign=$pdo->prepare('INSERT INTO election_managers(election_id,user_id,assigned_by) VALUES(:eid,:uid,:by)');
+            $assign->execute(['eid'=>$id,'uid'=>$createdBy,'by'=>$createdBy]);
+        }
         Audit::log('election.created','election',$id,['title'=>$title,'mode'=>$mode]);
         return $id;
     }

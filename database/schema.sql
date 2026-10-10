@@ -110,6 +110,8 @@ CREATE TABLE voter_tokens (
     otp_expires_at DATETIME NULL,
     verified_at DATETIME NULL,
     consumed_at DATETIME NULL,
+    otp_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    otp_locked_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_voter_tokens_election (election_id),
     CONSTRAINT fk_tokens_election FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE,
@@ -176,4 +178,5 @@ CREATE TABLE election_live_state (
 ) ENGINE=InnoDB;
 
 CREATE TABLE election_witnesses (election_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,assigned_by BIGINT UNSIGNED NOT NULL,assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(election_id,user_id),CONSTRAINT fk_ew_election FOREIGN KEY(election_id) REFERENCES elections(id) ON DELETE CASCADE,CONSTRAINT fk_ew_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,CONSTRAINT fk_ew_assigner FOREIGN KEY(assigned_by) REFERENCES users(id)) ENGINE=InnoDB;
+CREATE TABLE election_managers (election_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,assigned_by BIGINT UNSIGNED NOT NULL,assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(election_id,user_id),CONSTRAINT fk_em_election FOREIGN KEY(election_id) REFERENCES elections(id) ON DELETE CASCADE,CONSTRAINT fk_em_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,CONSTRAINT fk_em_assigner FOREIGN KEY(assigned_by) REFERENCES users(id)) ENGINE=InnoDB;
 CREATE TABLE witness_checkpoints (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,election_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,stage ENUM('setup_reviewed','census_verified','opening_attested','closing_attested','results_attested') NOT NULL,snapshot_json JSON NOT NULL,sha256_hash CHAR(64) NOT NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY idx_wc_election(election_id,created_at),CONSTRAINT fk_wc_election FOREIGN KEY(election_id) REFERENCES elections(id) ON DELETE CASCADE,CONSTRAINT fk_wc_user FOREIGN KEY(user_id) REFERENCES users(id)) ENGINE=InnoDB;

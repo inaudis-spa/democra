@@ -16,6 +16,7 @@ final class VotingService
         $stmt = Database::connection()->prepare(
             'SELECT vt.id token_id, vt.election_id, vt.census_member_id, vt.otp_hash, vt.otp_expires_at, vt.verified_at, vt.consumed_at,
                     cm.name voter_name, cm.vote_weight, cm.has_voted, cm.status member_status,
+                    vt.otp_attempts, vt.otp_locked_at,
                     e.title election_title, e.description, e.voting_mode, e.status election_status, e.starts_at, e.ends_at
              FROM voter_tokens vt
              JOIN census_members cm ON cm.id=vt.census_member_id
@@ -30,10 +31,14 @@ final class VotingService
     public static function verifyOtp(string $rawToken, string $otp): bool
     {
         $context=self::resolveToken($rawToken);
-        if(!$context||empty($context['otp_hash'])||!empty($context['consumed_at'])) return false;
+        if(!$context||empty($context['otp_hash'])||!empty($context['consumed_at'])||!empty($context['otp_locked_at'])) return false;
         if(!empty($context['otp_expires_at'])&&strtotime((string)$context['otp_expires_at'])<time()) return false;
-        if(!password_verify(trim($otp),(string)$context['otp_hash'])) return false;
-        $stmt=Database::connection()->prepare('UPDATE voter_tokens SET verified_at=NOW() WHERE id=:id AND consumed_at IS NULL');
+        if(!password_verify(trim($otp),(string)$context['otp_hash'])){
+            $failed=Database::connection()->prepare('UPDATE voter_tokens SET otp_attempts=otp_attempts+1,otp_locked_at=IF(otp_attempts+1>=8,NOW(),otp_locked_at) WHERE id=:id AND consumed_at IS NULL');
+            $failed->execute(['id'=>(int)$context['token_id']]);
+            return false;
+        }
+        $stmt=Database::connection()->prepare('UPDATE voter_tokens SET verified_at=NOW(),otp_attempts=0 WHERE id=:id AND consumed_at IS NULL AND otp_locked_at IS NULL');
         $stmt->execute(['id'=>(int)$context['token_id']]);
         Audit::log('voter.otp_verified','census_member',(int)$context['census_member_id'],['election_id'=>(int)$context['election_id']]);
         return true;

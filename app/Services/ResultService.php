@@ -39,15 +39,15 @@ final class ResultService
     public static function certify(int $electionId, int $userId): array
     {
         $pdo=Database::connection();
+        $status=$pdo->prepare('SELECT status FROM elections WHERE id=:id');$status->execute(['id'=>$electionId]);
+        if($status->fetchColumn()!=='closed')throw new \RuntimeException('Los resultados solo pueden certificarse después de cerrar la votación.');
         $summary=self::summary($electionId);
         $canonical=json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
         if ($canonical===false) throw new \RuntimeException('No fue posible serializar los resultados.');
         $hash=hash('sha256',$canonical);
-        $stmt=$pdo->prepare(
-            'INSERT INTO result_certificates (election_id,results_json,sha256_hash,generated_at,generated_by)
-             VALUES (:election_id,:results_json,:hash,NOW(),:generated_by)
-             ON DUPLICATE KEY UPDATE results_json=VALUES(results_json),sha256_hash=VALUES(sha256_hash),generated_at=NOW(),generated_by=VALUES(generated_by)'
-        );
+        $existing=$pdo->prepare('SELECT results_json,sha256_hash FROM result_certificates WHERE election_id=:id');$existing->execute(['id'=>$electionId]);$certificate=$existing->fetch(PDO::FETCH_ASSOC);
+        if($certificate){return ['sha256'=>$certificate['sha256_hash'],'results'=>json_decode((string)$certificate['results_json'],true,512,JSON_THROW_ON_ERROR)];}
+        $stmt=$pdo->prepare('INSERT INTO result_certificates (election_id,results_json,sha256_hash,generated_at,generated_by) VALUES (:election_id,:results_json,:hash,NOW(),:generated_by)');
         $stmt->execute(['election_id'=>$electionId,'results_json'=>$canonical,'hash'=>$hash,'generated_by'=>$userId]);
         Audit::log('results.certified','election',$electionId,['sha256'=>$hash],$userId);
         return ['sha256'=>$hash,'results'=>$summary];

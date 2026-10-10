@@ -26,6 +26,7 @@ final class LiveControlService
     }
     public static function setDisplayResults(int $electionId,bool $show,int $userId): void
     {
+        if($show){$status=Database::connection()->prepare('SELECT status FROM elections WHERE id=:id');$status->execute(['id'=>$electionId]);if($status->fetchColumn()!=='closed')throw new \RuntimeException('Los resultados solo pueden mostrarse después de cerrar la votación.');}
         $pdo=Database::connection();$stmt=$pdo->prepare('INSERT INTO election_live_state (election_id,display_results,updated_by) VALUES (:eid,:show,:uid) ON DUPLICATE KEY UPDATE display_results=VALUES(display_results),updated_by=VALUES(updated_by),updated_at=NOW()');$stmt->execute(['eid'=>$electionId,'show'=>$show?1:0,'uid'=>$userId]);Audit::log('live.results_visibility_changed','election',$electionId,['visible'=>$show],$userId);
     }
     public static function recentActivity(int $electionId,int $limit=8): array

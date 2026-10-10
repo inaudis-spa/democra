@@ -27,10 +27,10 @@ final class CensusService
         foreach($lines as $index=>$line){if(trim($line)==='')continue;$row=str_getcsv($line,';');if(count($row)<3)$row=str_getcsv($line,',');if($index===0&&isset($row[0])&&preg_match('/rut|nombre|name/i',implode(' ',$row)))continue;try{self::add($electionId,['rut'=>$row[0]??null,'name'=>$row[1]??'','email'=>$row[2]??'','phone'=>$row[3]??null,'vote_weight'=>$row[4]??1,'segment'=>$row[5]??null]);$created++;}catch(\Throwable $e){$errors[]='Fila '.($index+1).': '.user_error_message($e);}}
         Audit::log('census.csv_imported','election',$electionId,['created'=>$created,'errors'=>count($errors)]);return ['created'=>$created,'errors'=>$errors];
     }
-    public static function generateInvitation(int $memberId): array
+    public static function generateInvitation(int $electionId,int $memberId): array
     {
         $pdo=Database::connection();$stmt=$pdo->prepare('SELECT cm.id,cm.election_id,cm.has_voted,cm.status,cm.email,e.status election_status FROM census_members cm JOIN elections e ON e.id=cm.election_id WHERE cm.id=:id');$stmt->execute(['id'=>$memberId]);$member=$stmt->fetch(PDO::FETCH_ASSOC);
-        if(!$member)throw new \RuntimeException('El votante seleccionado no existe.');
+        if(!$member||(int)$member['election_id']!==$electionId)throw new \RuntimeException('El votante seleccionado no pertenece a esta votación.');
         if($member['status']!=='eligible'||(int)$member['has_voted']===1)throw new \RuntimeException('El votante no está habilitado o ya emitió su voto.');
         if($member['election_status']!=='open')throw new \RuntimeException('Abre la votación antes de generar invitaciones.');
         $raw=bin2hex(random_bytes(32));$hash=hash('sha256',$raw);$otp=(string)random_int(100000,999999);$otpHash=password_hash($otp,PASSWORD_DEFAULT);$ttl=max(60,(int)(getenv('OTP_TTL_SECONDS')?:600));
