@@ -62,3 +62,26 @@ Esto permite que un cliente tenga procesos distintos con responsables diferentes
 Los errores no controlados muestran un código de referencia y se registran mediante el log de PHP. Si `storage/logs` es escribible, también se guardan en `storage/logs/application.log`.
 
 Para diagnosticar un fallo, buscar el código visible para el usuario en esos registros. Nunca activar `display_errors` en producción.
+
+## Reinicio total conservando al administrador
+
+Esta operación elimina definitivamente todas las organizaciones, votaciones, usuarios secundarios, padrones, votos, resultados, certificados y registros de auditoría de la base indicada. Reconstruye el esquema actual y conserva únicamente el administrador seleccionado, incluida su contraseña vigente.
+
+1. Crear y verificar un respaldo SQL.
+2. Confirmar el nombre real de la base y el correo del administrador.
+3. Ejecutar desde la raíz del proyecto:
+
+   ```bash
+   php database/reset_production.php \
+     --database=NOMBRE_REAL_DE_LA_BASE \
+     --admin-email=CORREO_DEL_ADMIN \
+     --confirm=DELETE-ALL-DATA
+   ```
+
+4. Verificar el resultado:
+
+   ```bash
+   php database/production_preflight.php
+   ```
+
+El script aborta si el nombre suministrado no coincide exactamente con la base conectada, si no encuentra exactamente un administrador o si falta la confirmación literal.
