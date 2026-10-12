@@ -4,7 +4,7 @@ require dirname(__DIR__).'/config/bootstrap.php';
 use InaudisVote\Auth\AuthService;
 use InaudisVote\Core\Csrf;
 
-if (AuthService::check()) { header('Location: /dashboard.php'); exit; }
+if (AuthService::check()) { header('Location: '.AuthService::landingPath()); exit; }
 $error = null;
 $_SESSION['login_guard'] = $_SESSION['login_guard'] ?? ['attempts'=>0, 'window_started'=>time()];
 if (time()-(int) $_SESSION['login_guard']['window_started'] > 900) $_SESSION['login_guard'] = ['attempts'=>0, 'window_started'=>time()];
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::validate($_POST['_csrf']??null)) $error='Solicitud inválida. Recarga la página.';
     elseif ((int) $_SESSION['login_guard']['attempts'] >= 8) $error='Demasiados intentos. Espera 15 minutos.';
     elseif ($email==='' || $password==='') $error='Ingresa email y contraseña.';
-    elseif (AuthService::attempt($email,$password)) { unset($_SESSION['login_guard']); header('Location: /dashboard.php'); exit; }
+    elseif (AuthService::attempt($email,$password)) { unset($_SESSION['login_guard']); header('Location: '.AuthService::landingPath()); exit; }
     else { $_SESSION['login_guard']['attempts']=(int) $_SESSION['login_guard']['attempts']+1; $error='Credenciales inválidas o usuario inactivo.'; }
 }
 ?>

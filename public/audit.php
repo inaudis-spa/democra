@@ -22,17 +22,14 @@ if($electionId>0){
         'SELECT DISTINCT a.*,u.name user_name
          FROM audit_logs a
          LEFT JOIN users u ON u.id=a.user_id
-         LEFT JOIN elections e ON a.entity_type="election" AND e.id=a.entity_id
          LEFT JOIN census_members cm ON a.entity_type="census_member" AND cm.id=a.entity_id
-         LEFT JOIN elections ce ON ce.id=cm.election_id
-         WHERE u.organization_id=:org_user
-            OR e.organization_id=:org_election
-            OR ce.organization_id=:org_census
-            OR (a.entity_type="organization" AND a.entity_id=:org_entity)
+         JOIN election_managers em ON em.user_id=:uid
+         WHERE (a.entity_type="election" AND a.entity_id=em.election_id)
+            OR JSON_EXTRACT(a.metadata,"$.election_id")=em.election_id
+            OR cm.election_id=em.election_id
          ORDER BY a.created_at DESC LIMIT 200'
     );
-    $organizationId=(int)$user['organization_id'];
-    $stmt->execute(['org_user'=>$organizationId,'org_election'=>$organizationId,'org_census'=>$organizationId,'org_entity'=>$organizationId]);
+    $stmt->execute(['uid'=>(int)$user['id']]);
 }
 $logs=$stmt->fetchAll(PDO::FETCH_ASSOC);
 $eventLabels=[

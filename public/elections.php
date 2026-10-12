@@ -5,7 +5,6 @@ require dirname(__DIR__).'/config/bootstrap.php';
 use InaudisVote\Core\Authorization;
 use InaudisVote\Core\Navigation;
 use InaudisVote\Core\Csrf;
-use InaudisVote\Core\Database;
 use InaudisVote\Services\ElectionService;
 use InaudisVote\Services\OrganizationService;
 
@@ -24,10 +23,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     }catch(Throwable $exception){$error=$exception->getMessage();}
 }
 
-if($user['role']==='witness'){
-    $stmt=Database::connection()->prepare('SELECT e.*,o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id JOIN election_witnesses ew ON ew.election_id=e.id WHERE ew.user_id=:uid ORDER BY e.created_at DESC');
-    $stmt->execute(['uid'=>$user['id']]);$elections=$stmt->fetchAll(PDO::FETCH_ASSOC);
-}else{$elections=ElectionService::allForUser($user);}
+$elections=ElectionService::allForUser($user);
 
 function electionStatusClass(string $status):string{return $status==='open'?'v-status-open':($status==='closed'?'v-status-closed':'v-status-draft');}
 function electionStatusLabel(string $status):string{return ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'][$status]??$status;}

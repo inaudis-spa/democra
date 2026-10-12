@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require dirname(__DIR__).'/config/bootstrap.php';
+use InaudisVote\Auth\AuthService;
 use InaudisVote\Core\Database;
 use InaudisVote\Services\CensusService;
 use InaudisVote\Services\ElectionService;
@@ -26,9 +27,13 @@ try{
     WitnessService::assign($electionId,$witnessId,$userId);
     assertFlow(WitnessService::isAssigned($electionId,$witnessId),'Ministro de Fe asignado a la votación');
     $witnessUser=['id'=>$witnessId,'role'=>'witness','organization_id'=>$organizationId];
+    assertFlow(AuthService::landingPath($witnessUser)==='/elections.php','Ministro de Fe inicia directamente en sus votaciones');
+    assertFlow(count(ElectionService::allForUser($witnessUser))===1,'Ministro de Fe lista solo procesos asignados');
     assertFlow(Authorization::canReviewElection($witnessUser,$electionId,$organizationId),'Ministro de Fe puede fiscalizar elección asignada');
     assertFlow(!Authorization::canManageElection($witnessUser,$organizationId,$electionId),'Ministro de Fe no adquiere permisos de administración');
     $organizerUser=['id'=>$userId,'role'=>'organizer','organization_id'=>$organizationId];
+    assertFlow(AuthService::landingPath($organizerUser)==='/dashboard.php','organizador inicia en su panel');
+    assertFlow(count(ElectionService::allForUser($organizerUser))===1,'organizador lista solo procesos asignados');
     assertFlow(Authorization::canManageElection($organizerUser,$organizationId,$electionId),'encargado asignado puede administrar su votación');
     $memberId=CensusService::add($electionId,['name'=>'Votante Prueba','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);
     try{CensusService::add($electionId,['name'=>'Duplicado','email'=>'votante-'.$suffix.'@inaudis.local','vote_weight'=>1]);assertFlow(false,'votante duplicado rechazado');}catch(InvalidArgumentException $e){assertFlow(str_contains($e->getMessage(),'ya está'),'votante duplicado entrega mensaje claro');}

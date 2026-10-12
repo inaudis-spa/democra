@@ -17,11 +17,11 @@ if($user['role']==='witness'){header('Location: /elections.php');exit;}elseif($u
     $voted=(int)$pdo->query('SELECT COUNT(*) FROM census_members WHERE has_voted=1')->fetchColumn();
     $audit=(int)$pdo->query('SELECT COUNT(*) FROM audit_logs')->fetchColumn();
 }else{
-    $org=(int)$user['organization_id'];$organizations=1;
-    $stmt=$pdo->prepare("SELECT COUNT(*) FROM elections WHERE organization_id=:org AND status='open'");$stmt->execute(['org'=>$org]);$active=(int)$stmt->fetchColumn();
-    $stmt=$pdo->prepare('SELECT COUNT(*) FROM census_members cm JOIN elections e ON e.id=cm.election_id WHERE e.organization_id=:org');$stmt->execute(['org'=>$org]);$members=(int)$stmt->fetchColumn();
-    $stmt=$pdo->prepare('SELECT COUNT(*) FROM census_members cm JOIN elections e ON e.id=cm.election_id WHERE e.organization_id=:org AND cm.has_voted=1');$stmt->execute(['org'=>$org]);$voted=(int)$stmt->fetchColumn();
-    $stmt=$pdo->prepare('SELECT COUNT(*) FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id WHERE u.organization_id=:org');$stmt->execute(['org'=>$org]);$audit=(int)$stmt->fetchColumn();
+    $uid=(int)$user['id'];$organizations=1;
+    $stmt=$pdo->prepare("SELECT COUNT(*) FROM elections e JOIN election_managers em ON em.election_id=e.id WHERE em.user_id=:uid AND e.status='open'");$stmt->execute(['uid'=>$uid]);$active=(int)$stmt->fetchColumn();
+    $stmt=$pdo->prepare('SELECT COUNT(*) FROM census_members cm JOIN election_managers em ON em.election_id=cm.election_id WHERE em.user_id=:uid');$stmt->execute(['uid'=>$uid]);$members=(int)$stmt->fetchColumn();
+    $stmt=$pdo->prepare('SELECT COUNT(*) FROM census_members cm JOIN election_managers em ON em.election_id=cm.election_id WHERE em.user_id=:uid AND cm.has_voted=1');$stmt->execute(['uid'=>$uid]);$voted=(int)$stmt->fetchColumn();
+    $stmt=$pdo->prepare('SELECT COUNT(DISTINCT a.id) FROM audit_logs a LEFT JOIN census_members cm ON a.entity_type="census_member" AND cm.id=a.entity_id JOIN election_managers em ON em.user_id=:uid WHERE (a.entity_type="election" AND a.entity_id=em.election_id) OR JSON_EXTRACT(a.metadata,"$.election_id")=em.election_id OR cm.election_id=em.election_id');$stmt->execute(['uid'=>$uid]);$audit=(int)$stmt->fetchColumn();
 }
 $pending=max(0,$members-$voted);$participation=$members>0?round(($voted/$members)*100,1):0;$recent=array_slice(ElectionService::allForUser($user),0,5);$featured=$recent[0]??null;$featuredMembers=0;$featuredVoted=0;$featuredParticipation=0;
 if($featured){$stmt=$pdo->prepare('SELECT COUNT(*) total,SUM(has_voted=1) voted FROM census_members WHERE election_id=:id');$stmt->execute(['id'=>$featured['id']]);$featuredStats=$stmt->fetch(PDO::FETCH_ASSOC)?:[];$featuredMembers=(int)($featuredStats['total']??0);$featuredVoted=(int)($featuredStats['voted']??0);$featuredParticipation=$featuredMembers>0?round($featuredVoted*100/$featuredMembers,1):0;}

@@ -62,6 +62,12 @@ final class AuthService
         return isset($_SESSION['user']);
     }
 
+    public static function landingPath(?array $user = null): string
+    {
+        $user ??= self::user();
+        return ($user['role'] ?? null) === 'witness' ? '/elections.php' : '/dashboard.php';
+    }
+
     public static function logout(): void
     {
         $_SESSION = [];

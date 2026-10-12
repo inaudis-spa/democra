@@ -1,5 +1,3 @@
-USE inaudis_vote;
-
 CREATE TABLE IF NOT EXISTS election_managers (
     election_id BIGINT UNSIGNED NOT NULL,
     user_id BIGINT UNSIGNED NOT NULL,

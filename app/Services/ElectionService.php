@@ -14,11 +14,17 @@ final class ElectionService
     public static function allForUser(array $user): array
     {
         $pdo = Database::connection();
-        if (($user['role'] ?? null) === 'admin') {
+        $role = $user['role'] ?? null;
+        if ($role === 'admin') {
             $stmt = $pdo->query('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id ORDER BY e.created_at DESC');
-        } else {
+        } elseif ($role === 'organizer') {
             $stmt = $pdo->prepare('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id JOIN election_managers em ON em.election_id=e.id WHERE em.user_id=:user_id ORDER BY e.created_at DESC');
             $stmt->execute(['user_id' => (int) ($user['id'] ?? 0)]);
+        } elseif ($role === 'witness') {
+            $stmt = $pdo->prepare('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id JOIN election_witnesses ew ON ew.election_id=e.id WHERE ew.user_id=:user_id ORDER BY e.created_at DESC');
+            $stmt->execute(['user_id' => (int) ($user['id'] ?? 0)]);
+        } else {
+            return [];
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
