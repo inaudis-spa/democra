@@ -1,5 +1,10 @@
 # INAUDIS Vote
 
+## Documentación de usuario
+
+- [Manual completo por perfiles y menú lateral](docs/MANUAL_USUARIO.md)
+- [Procedimiento de despliegue a producción](docs/RUNBOOK_PRODUCCION.md)
+
 Plataforma SaaS de votación electrónica, gestión de censos, procesos electorales, auditoría y generación de actas.
 
 ## Objetivo

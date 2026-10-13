@@ -38,7 +38,7 @@ final class Navigation
         if ($role === 'admin') echo $item('organizations', '/organizations.php', '&#9638;', 'Organizaciones');
         if ($role !== 'witness') echo $item('users', '/users.php', '&#9817;', 'Equipo y accesos');
         echo $item($electionId ? 'platform-audit' : 'audit', '/audit.php', '&#9687;', 'Auditoría general');
-        echo $item('guide', '/guide.php', '?', 'Cómo funciona');
+        echo $item('guide', '/manual.php?perfil='.rawurlencode($role), '?', 'Cómo funciona');
 
         if ($electionId !== null && $electionId > 0) {
             $id = (int) $electionId;

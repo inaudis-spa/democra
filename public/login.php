@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div style="margin-bottom:18px"><label class="v-label" for="email">Email</label><input class="v-field" id="email" name="email" type="email" required placeholder="nombre@organizacion.cl" value="<?=htmlspecialchars((string) ($_POST['email']??''),ENT_QUOTES,'UTF-8')?>"></div>
 <div style="margin-bottom:22px"><label class="v-label" for="password">Contraseña</label><div class="v-password-field"><input class="v-field" id="password" name="password" type="password" required placeholder="••••••••"><button class="v-password-toggle" type="button" aria-label="Mostrar contraseña" aria-pressed="false" data-password-toggle><span aria-hidden="true">&#128065;</span></button></div></div>
 <button class="v-btn v-btn-orange" style="width:100%;justify-content:center;font-size:15px" type="submit">Ingresar →</button></form>
-<div class="v-security"><span>🔒 Sesión segura</span><span>✓ CSRF</span><span>◷ Protección de intentos</span></div></div></section>
+<div class="v-security"><span>🔒 Sesión segura</span><span>✓ CSRF</span><span>◷ Protección de intentos</span></div><div style="margin-top:22px;text-align:center"><a class="v-link" href="/manual.php">¿Primera vez? Aprende a usar QUORUM →</a></div></div></section>
 </main>
 <script>document.querySelector('[data-password-toggle]').addEventListener('click',function(){const input=document.getElementById('password');const visible=input.type==='text';input.type=visible?'password':'text';this.setAttribute('aria-pressed',String(!visible));this.setAttribute('aria-label',visible?'Mostrar contraseña':'Ocultar contraseña');});</script>
 </body></html>
