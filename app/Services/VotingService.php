@@ -82,6 +82,27 @@ final class VotingService
         $ballotToken=bin2hex(random_bytes(32));
         $pdo->beginTransaction();
         try {
+            // Serialize submissions with election closure on the same InnoDB row.
+            $lock=$pdo->prepare('SELECT status,starts_at,ends_at FROM elections WHERE id=:id FOR UPDATE');
+            $lock->execute(['id'=>(int)$context['election_id']]);
+            $state=$lock->fetch(PDO::FETCH_ASSOC);
+            $now=time();
+            if (!$state || $state['status'] !== 'open'
+                || (!empty($state['starts_at']) && strtotime((string)$state['starts_at']) > $now)
+                || (!empty($state['ends_at']) && strtotime((string)$state['ends_at']) < $now)) {
+                throw new \\RuntimeException('La votación ya no está abierta.');
+            }
+            // Recheck the invitation inside the transaction, after acquiring the election lock.
+            $tokenLock=$pdo->prepare('SELECT vt.verified_at,vt.consumed_at,vt.otp_locked_at,cm.has_voted,cm.status
+                FROM voter_tokens vt JOIN census_members cm ON cm.id=vt.census_member_id
+                WHERE vt.id=:id FOR UPDATE');
+            $tokenLock->execute(['id'=>(int)$context['token_id']]);
+            $fresh=$tokenLock->fetch(PDO::FETCH_ASSOC);
+            if (!$fresh || empty($fresh['verified_at']) || !empty($fresh['consumed_at'])
+                || !empty($fresh['otp_locked_at']) || (int)$fresh['has_voted']===1
+                || $fresh['status']!=='eligible') {
+                throw new \\RuntimeException('La invitación ya no está habilitada para votar.');
+            }
             $stmt=$pdo->prepare('INSERT INTO ballots (election_id,ballot_token,weight,submitted_at) VALUES (:election_id,:ballot_token,:weight,NOW())');
             $stmt->execute(['election_id'=>(int)$context['election_id'],'ballot_token'=>$ballotToken,'weight'=>(float)$context['vote_weight']]);
             $ballotId=(int)$pdo->lastInsertId();
