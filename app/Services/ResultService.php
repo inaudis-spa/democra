@@ -46,7 +46,14 @@ final class ResultService
         if ($canonical===false) throw new \RuntimeException('No fue posible serializar los resultados.');
         $hash=hash('sha256',$canonical);
         $existing=$pdo->prepare('SELECT results_json,sha256_hash FROM result_certificates WHERE election_id=:id');$existing->execute(['id'=>$electionId]);$certificate=$existing->fetch(PDO::FETCH_ASSOC);
-        if($certificate){return ['sha256'=>$certificate['sha256_hash'],'results'=>json_decode((string)$certificate['results_json'],true,512,JSON_THROW_ON_ERROR)];}
+        if($certificate){
+            $storedJson=(string)$certificate['results_json'];
+            $storedHash=(string)$certificate['sha256_hash'];
+            if(!hash_equals($storedHash,hash('sha256',$storedJson))){
+                throw new \RuntimeException('La certificación almacenada no supera la verificación de integridad.');
+            }
+            return ['sha256'=>$storedHash,'results'=>json_decode($storedJson,true,512,JSON_THROW_ON_ERROR)];
+        }
         $stmt=$pdo->prepare('INSERT INTO result_certificates (election_id,results_json,sha256_hash,generated_at,generated_by) VALUES (:election_id,:results_json,:hash,NOW(),:generated_by)');
         $stmt->execute(['election_id'=>$electionId,'results_json'=>$canonical,'hash'=>$hash,'generated_by'=>$userId]);
         Audit::log('results.certified','election',$electionId,['sha256'=>$hash],$userId);
