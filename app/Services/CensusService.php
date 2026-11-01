@@ -29,14 +29,34 @@ final class CensusService
     }
     public static function generateInvitation(int $electionId,int $memberId): array
     {
-        $pdo=Database::connection();$stmt=$pdo->prepare('SELECT cm.id,cm.election_id,cm.has_voted,cm.status,cm.email,e.status election_status FROM census_members cm JOIN elections e ON e.id=cm.election_id WHERE cm.id=:id');$stmt->execute(['id'=>$memberId]);$member=$stmt->fetch(PDO::FETCH_ASSOC);
-        if(!$member||(int)$member['election_id']!==$electionId)throw new \RuntimeException('El votante seleccionado no pertenece a esta votación.');
-        if($member['status']!=='eligible'||(int)$member['has_voted']===1)throw new \RuntimeException('El votante no está habilitado o ya emitió su voto.');
-        if($member['election_status']!=='open')throw new \RuntimeException('Abre la votación antes de generar invitaciones.');
-        $raw=bin2hex(random_bytes(32));$hash=hash('sha256',$raw);$otp=(string)random_int(100000,999999);$otpHash=password_hash($otp,PASSWORD_DEFAULT);$ttl=max(60,(int)(getenv('OTP_TTL_SECONDS')?:600));
-        $pdo->prepare('DELETE FROM voter_tokens WHERE census_member_id=:id AND consumed_at IS NULL')->execute(['id'=>$memberId]);
-        $insert=$pdo->prepare('INSERT INTO voter_tokens (election_id,census_member_id,token_hash,otp_hash,otp_expires_at,created_at) VALUES (:election_id,:member_id,:token_hash,:otp_hash,DATE_ADD(NOW(),INTERVAL :ttl SECOND),NOW())');
-        $insert->execute(['election_id'=>(int)$member['election_id'],'member_id'=>$memberId,'token_hash'=>$hash,'otp_hash'=>$otpHash,'ttl'=>$ttl]);
-        Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>(int)$member['election_id'],'channel'=>'demo']);return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email'],'expires_in_seconds'=>$ttl];
+        $pdo=Database::connection();
+        $raw=bin2hex(random_bytes(32));
+        $hash=hash('sha256',$raw);
+        $otp=(string)random_int(100000,999999);
+        $otpHash=password_hash($otp,PASSWORD_DEFAULT);
+        $ttl=max(60,(int)(getenv('OTP_TTL_SECONDS')?:600));
+        $pdo->beginTransaction();
+        try {
+            // Lock election first, consistent with the voting and closure paths.
+            $election=$pdo->prepare('SELECT status FROM elections WHERE id=:id FOR UPDATE');
+            $election->execute(['id'=>$electionId]);
+            if($election->fetchColumn()!=='open')throw new \\RuntimeException('Abre la votación antes de generar invitaciones.');
+            $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status,email FROM census_members WHERE id=:id AND election_id=:eid FOR UPDATE');
+            $stmt->execute(['id'=>$memberId,'eid'=>$electionId]);
+            $member=$stmt->fetch(PDO::FETCH_ASSOC);
+            if(!$member)throw new \\RuntimeException('El votante seleccionado no pertenece a esta votación.');
+            if($member['status']!=='eligible'||(int)$member['has_voted']===1)throw new \\RuntimeException('El votante no está habilitado o ya emitió su voto.');
+            // Preserve invitation history; revoke old active tokens without claiming they were used.
+            $revoke=$pdo->prepare('UPDATE voter_tokens SET otp_locked_at=COALESCE(otp_locked_at,NOW()) WHERE census_member_id=:id AND election_id=:eid AND consumed_at IS NULL');
+            $revoke->execute(['id'=>$memberId,'eid'=>$electionId]);
+            $insert=$pdo->prepare('INSERT INTO voter_tokens (election_id,census_member_id,token_hash,otp_hash,otp_expires_at,created_at) VALUES (:election_id,:member_id,:token_hash,:otp_hash,DATE_ADD(NOW(),INTERVAL :ttl SECOND),NOW())');
+            $insert->execute(['election_id'=>$electionId,'member_id'=>$memberId,'token_hash'=>$hash,'otp_hash'=>$otpHash,'ttl'=>$ttl]);
+            Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>$electionId,'channel'=>'demo']);
+            $pdo->commit();
+            return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email'],'expires_in_seconds'=>$ttl];
+        } catch(\\Throwable $e) {
+            if($pdo->inTransaction())$pdo->rollBack();
+            throw $e;
+        }
     }
 }
