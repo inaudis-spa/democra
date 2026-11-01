@@ -1,14 +1,14 @@
-# INAUDIS Vote
+# QUORUM — by INAUDIS
 
 ## Documentación de usuario
 
 - [Manual completo por perfiles y menú lateral](docs/MANUAL_USUARIO.md)
 - [Procedimiento de despliegue a producción](docs/RUNBOOK_PRODUCCION.md)
 
-Plataforma SaaS de votación electrónica, gestión de censos, procesos electorales, auditoría y generación de actas.
+QUORUM es una plataforma SaaS de votación electrónica, gestión de censos, procesos electorales, auditoría y generación de actas.
 
 ## Objetivo
-Construir un demo funcional que permita configurar, ejecutar y auditar procesos de votación digital, dejando una base técnica reutilizable para evolucionar a MVP, piloto y producto productivo.
+Construir y fortalecer una plataforma funcional que permita configurar, ejecutar y auditar procesos de votación digital, dejando una base técnica reutilizable para evolucionar a MVP, piloto y producto productivo.
 
 ## Stack técnico oficial INAUDIS
 - HTML5
@@ -48,3 +48,11 @@ Demo → MVP → Piloto → Productivo → Auditoría/Certificación.
 - `docs/ROADMAP.md`
 
 © INAUDIS SpA
+
+## Estado de seguridad y preparación
+
+El proyecto se encuentra en desarrollo y endurecimiento de seguridad. Las mejoras de integridad de voto, OTP, invitaciones, certificados y fiscalización requieren pruebas integrales y de concurrencia antes de producción. No se declara certificación regulatoria ni alta disponibilidad verificada.
+
+Antes de operar elecciones reales deben validarse: secreto del voto, cierre concurrente, control de accesos, restauración de respaldos, replicación/alta disponibilidad, evidencias criptográficas y requisitos legales aplicables.
+
+**Precaución:** `database/reset_production.php` elimina datos. No ejecutarlo como parte de pruebas ni despliegues ordinarios.
