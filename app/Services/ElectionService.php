@@ -111,16 +111,39 @@ final class ElectionService
 
     public static function setStatus(int $electionId,string $status): void
     {
-        if(!in_array($status,['draft','scheduled','open','closed','cancelled'],true)) throw new \InvalidArgumentException('Estado inválido.');
-        $pdo=Database::connection();$current=self::find($electionId);if(!$current) throw new \RuntimeException('Votación no encontrada.');
-        $allowed=['draft'=>['scheduled','open','cancelled'],'scheduled'=>['draft','open','cancelled'],'open'=>['closed','cancelled'],'closed'=>[],'cancelled'=>[]];
-        if($status!==$current['status']&&!in_array($status,$allowed[$current['status']]??[],true)) throw new \RuntimeException('Transición de estado no permitida.');
-        if($status==='open'){
-            $q=$pdo->prepare('SELECT COUNT(*) FROM questions WHERE election_id=:id');$q->execute(['id'=>$electionId]);
-            $c=$pdo->prepare("SELECT COUNT(*) FROM census_members WHERE election_id=:id AND status='eligible'");$c->execute(['id'=>$electionId]);
-            if((int)$q->fetchColumn()===0||(int)$c->fetchColumn()===0) throw new \RuntimeException('No se puede abrir sin preguntas y votantes habilitados.');
-            $stmt=$pdo->prepare('UPDATE elections SET status=:status,ballot_locked_at=COALESCE(ballot_locked_at,NOW()),census_locked_at=COALESCE(census_locked_at,NOW()) WHERE id=:id');
-        } else {$stmt=$pdo->prepare('UPDATE elections SET status=:status WHERE id=:id');}
-        $stmt->execute(['status'=>$status,'id'=>$electionId]);Audit::log('election.status_changed','election',$electionId,['from'=>$current['status'],'status'=>$status]);
+        if(!in_array($status,['draft','scheduled','open','closed','cancelled'],true)) {
+            throw new \\InvalidArgumentException('Estado inválido.');
+        }
+        $pdo=Database::connection();
+        $pdo->beginTransaction();
+        try {
+            // The voting service locks the same row before recording a ballot.
+            $lock=$pdo->prepare('SELECT status FROM elections WHERE id=:id FOR UPDATE');
+            $lock->execute(['id'=>$electionId]);
+            $current=$lock->fetch(PDO::FETCH_ASSOC);
+            if(!$current) throw new \\RuntimeException('Votación no encontrada.');
+            $allowed=['draft'=>['scheduled','open','cancelled'],'scheduled'=>['draft','open','cancelled'],'open'=>['closed','cancelled'],'closed'=>[],'cancelled'=>[]];
+            if($status!==$current['status']&&!in_array($status,$allowed[$current['status']]??[],true)) {
+                throw new \\RuntimeException('Transición de estado no permitida.');
+            }
+            if($status==='open'){
+                $q=$pdo->prepare('SELECT COUNT(*) FROM questions WHERE election_id=:id');
+                $q->execute(['id'=>$electionId]);
+                $c=$pdo->prepare("SELECT COUNT(*) FROM census_members WHERE election_id=:id AND status='eligible'");
+                $c->execute(['id'=>$electionId]);
+                if((int)$q->fetchColumn()===0||(int)$c->fetchColumn()===0) {
+                    throw new \\RuntimeException('No se puede abrir sin preguntas y votantes habilitados.');
+                }
+                $stmt=$pdo->prepare('UPDATE elections SET status=:status,ballot_locked_at=COALESCE(ballot_locked_at,NOW()),census_locked_at=COALESCE(census_locked_at,NOW()) WHERE id=:id');
+            } else {
+                $stmt=$pdo->prepare('UPDATE elections SET status=:status WHERE id=:id');
+            }
+            $stmt->execute(['status'=>$status,'id'=>$electionId]);
+            Audit::log('election.status_changed','election',$electionId,['from'=>$current['status'],'status'=>$status]);
+            $pdo->commit();
+        } catch (\\Throwable $e) {
+            if($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
     }
 }
