@@ -55,26 +55,42 @@ final class WitnessService
 
     public static function checkpoint(int $electionId,string $stage,int $userId): string
     {
-        if(!self::isAssigned($electionId,$userId))throw new \RuntimeException('No estás asignado como Ministro de Fe de este proceso.');
-        $election=ElectionService::find($electionId);if(!$election)throw new \RuntimeException('Votación no encontrada.');
-        $next=self::nextStage($electionId,$userId);
-        if($next===null)throw new \RuntimeException('Todos los hitos del proceso ya fueron certificados.');
-        if($stage!==$next)throw new \RuntimeException('Los hitos deben certificarse en el orden definido. El siguiente es: '.$next.'.');
-        $allowedStatuses=[
-            'setup_reviewed'=>['draft','scheduled','open'],
-            'census_verified'=>['draft','scheduled','open'],
-            'opening_attested'=>['open'],
-            'closing_attested'=>['closed'],
-            'results_attested'=>['closed'],
-        ];
-        if(!in_array($election['status'],$allowedStatuses[$stage],true))throw new \RuntimeException('El estado actual de la votación no permite certificar este hito.');
-        $pdo=Database::connection();$counts=$pdo->prepare('SELECT COUNT(*) total,SUM(status="eligible") eligible,SUM(has_voted=1) voted FROM census_members WHERE election_id=:id');$counts->execute(['id'=>$electionId]);
-        $snapshot=['election_id'=>$electionId,'stage'=>$stage,'status'=>$election['status'],'ballot_locked_at'=>$election['ballot_locked_at'],'census_locked_at'=>$election['census_locked_at'],'census'=>$counts->fetch(PDO::FETCH_ASSOC),'questions'=>ElectionService::questions($electionId),'at'=>gmdate('c')];
-        if($stage==='results_attested')$snapshot['results']=ResultService::summary($electionId);
-        $json=json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);$hash=hash('sha256',(string)$json);
-        $stmt=$pdo->prepare('INSERT INTO witness_checkpoints(election_id,user_id,stage,snapshot_json,sha256_hash) VALUES(:eid,:uid,:stage,:json,:hash)');
-        $stmt->execute(['eid'=>$electionId,'uid'=>$userId,'stage'=>$stage,'json'=>$json,'hash'=>$hash]);
-        Audit::log('witness.checkpoint','election',$electionId,['stage'=>$stage,'sha256'=>$hash],$userId);return $hash;
+        $pdo=Database::connection();
+        $pdo->beginTransaction();
+        try {
+            // Serialize checkpoints for this election without changing its schema.
+            $lock=$pdo->prepare('SELECT status,ballot_locked_at,census_locked_at FROM elections WHERE id=:id FOR UPDATE');
+            $lock->execute(['id'=>$electionId]);
+            $election=$lock->fetch(PDO::FETCH_ASSOC);
+            if(!$election)throw new \\RuntimeException('Votación no encontrada.');
+            if(!self::isAssigned($electionId,$userId))throw new \\RuntimeException('No estás asignado como Ministro de Fe de este proceso.');
+            $next=self::nextStage($electionId,$userId);
+            if($next===null)throw new \\RuntimeException('Todos los hitos del proceso ya fueron certificados.');
+            if($stage!==$next)throw new \\RuntimeException('Los hitos deben certificarse en el orden definido. El siguiente es: '.$next.'.');
+            $allowedStatuses=[
+                'setup_reviewed'=>['draft','scheduled','open'],
+                'census_verified'=>['draft','scheduled','open'],
+                'opening_attested'=>['open'],
+                'closing_attested'=>['closed'],
+                'results_attested'=>['closed'],
+            ];
+            if(!in_array($election['status'],$allowedStatuses[$stage]??[],true))throw new \\RuntimeException('El estado actual de la votación no permite certificar este hito.');
+            $counts=$pdo->prepare('SELECT COUNT(*) total,SUM(status="eligible") eligible,SUM(has_voted=1) voted FROM census_members WHERE election_id=:id');
+            $counts->execute(['id'=>$electionId]);
+            $snapshot=['election_id'=>$electionId,'stage'=>$stage,'status'=>$election['status'],'ballot_locked_at'=>$election['ballot_locked_at'],'census_locked_at'=>$election['census_locked_at'],'census'=>$counts->fetch(PDO::FETCH_ASSOC),'questions'=>ElectionService::questions($electionId),'at'=>gmdate('c')];
+            if($stage==='results_attested')$snapshot['results']=ResultService::summary($electionId);
+            $json=json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
+            if($json===false)throw new \\RuntimeException('No fue posible serializar la evidencia.');
+            $hash=hash('sha256',$json);
+            $stmt=$pdo->prepare('INSERT INTO witness_checkpoints(election_id,user_id,stage,snapshot_json,sha256_hash) VALUES(:eid,:uid,:stage,:json,:hash)');
+            $stmt->execute(['eid'=>$electionId,'uid'=>$userId,'stage'=>$stage,'json'=>$json,'hash'=>$hash]);
+            Audit::log('witness.checkpoint','election',$electionId,['stage'=>$stage,'sha256'=>$hash],$userId);
+            $pdo->commit();
+            return $hash;
+        } catch(\\Throwable $e) {
+            if($pdo->inTransaction())$pdo->rollBack();
+            throw $e;
+        }
     }
 
     public static function checkpoints(int $electionId): array
