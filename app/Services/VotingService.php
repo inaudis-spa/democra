@@ -49,7 +49,7 @@ final class VotingService
     {
         if (($context['member_status'] ?? '') !== 'eligible') return false;
         if ((int)($context['has_voted'] ?? 0) === 1) return false;
-        if (!empty($context['consumed_at'])) return false;
+        if (!empty($context['consumed_at']) || !empty($context['otp_locked_at'])) return false;
         if (empty($context['verified_at'])) return false;
         if (($context['election_status'] ?? '') !== 'open') return false;
         $now=time();
