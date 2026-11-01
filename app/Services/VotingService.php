@@ -40,6 +40,7 @@ final class VotingService
         }
         $stmt=Database::connection()->prepare('UPDATE voter_tokens SET verified_at=NOW(),otp_attempts=0 WHERE id=:id AND consumed_at IS NULL AND otp_locked_at IS NULL');
         $stmt->execute(['id'=>(int)$context['token_id']]);
+        if ($stmt->rowCount() !== 1) return false;
         Audit::log('voter.otp_verified','census_member',(int)$context['census_member_id'],['election_id'=>(int)$context['election_id']]);
         return true;
     }
