@@ -139,6 +139,15 @@ final class ElectionService
                 $stmt=$pdo->prepare('UPDATE elections SET status=:status WHERE id=:id');
             }
             $stmt->execute(['status'=>$status,'id'=>$electionId]);
+            // Queue invitations atomically on the first opening. Delivery stays disabled
+            // until a mail transport is configured; no voter token is exposed here.
+            if($status==='open' && $current['status']!=='open'){
+                $campaign=$pdo->prepare("INSERT INTO invitation_campaigns (election_id,status) VALUES (:id,'queued')");
+                $campaign->execute(['id'=>$electionId]);
+                $campaignId=(int)$pdo->lastInsertId();
+                $queue=$pdo->prepare("INSERT INTO invitation_deliveries (campaign_id,census_member_id,recipient_email,status) SELECT :campaign_id,id,email,'queued' FROM census_members WHERE election_id=:election_id AND status='eligible' AND has_voted=0");
+                $queue->execute(['campaign_id'=>$campaignId,'election_id'=>$electionId]);
+            }
             Audit::log('election.status_changed','election',$electionId,['from'=>$current['status'],'status'=>$status]);
             $pdo->commit();
         } catch (\\Throwable $e) {
