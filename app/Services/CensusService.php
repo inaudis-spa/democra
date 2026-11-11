@@ -40,12 +40,12 @@ final class CensusService
             // Lock election first, consistent with the voting and closure paths.
             $election=$pdo->prepare('SELECT status FROM elections WHERE id=:id FOR UPDATE');
             $election->execute(['id'=>$electionId]);
-            if($election->fetchColumn()!=='open')throw new \\RuntimeException('Abre la votación antes de generar invitaciones.');
+            if($election->fetchColumn()!=='open')throw new \RuntimeException('Abre la votación antes de generar invitaciones.');
             $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status,email FROM census_members WHERE id=:id AND election_id=:eid FOR UPDATE');
             $stmt->execute(['id'=>$memberId,'eid'=>$electionId]);
             $member=$stmt->fetch(PDO::FETCH_ASSOC);
-            if(!$member)throw new \\RuntimeException('El votante seleccionado no pertenece a esta votación.');
-            if($member['status']!=='eligible'||(int)$member['has_voted']===1)throw new \\RuntimeException('El votante no está habilitado o ya emitió su voto.');
+            if(!$member)throw new \RuntimeException('El votante seleccionado no pertenece a esta votación.');
+            if($member['status']!=='eligible'||(int)$member['has_voted']===1)throw new \RuntimeException('El votante no está habilitado o ya emitió su voto.');
             // Preserve invitation history; revoke old active tokens without claiming they were used.
             $revoke=$pdo->prepare('UPDATE voter_tokens SET otp_locked_at=COALESCE(otp_locked_at,NOW()) WHERE census_member_id=:id AND election_id=:eid AND consumed_at IS NULL');
             $revoke->execute(['id'=>$memberId,'eid'=>$electionId]);
@@ -54,7 +54,7 @@ final class CensusService
             Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>$electionId,'channel'=>'demo']);
             $pdo->commit();
             return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email'],'expires_in_seconds'=>$ttl];
-        } catch(\\Throwable $e) {
+        } catch(\Throwable $e) {
             if($pdo->inTransaction())$pdo->rollBack();
             throw $e;
         }
