@@ -99,10 +99,10 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
             <?php if ($error): ?><div class="v-alert v-alert-error"><?=htmlspecialchars($error)?></div><?php endif; ?>
 
             <section class="cc-overview">
-                <article><span>Participación</span><strong><?=$snapshot['participation']?>%</strong><div class="v-progress"><i style="width:<?=min(100, $snapshot['participation'])?>%"></i></div></article>
-                <article><span>Votos recibidos</span><strong><?=$snapshot['voted']?> <small>de <?=$snapshot['eligible']?></small></strong></article>
-                <article><span>Pendientes</span><strong><?=$snapshot['pending']?></strong></article>
-                <article><span>Pregunta visible</span><strong class="cc-question-stat"><?=$current ? htmlspecialchars($current['text']) : 'Sin seleccionar'?></strong></article>
+                <article><span>Participación</span><strong id="live-participation"><?=$snapshot['participation']?>%</strong><div class="v-progress"><i id="live-progress" style="width:<?=min(100, $snapshot['participation'])?>%"></i></div></article>
+                <article><span>Votos recibidos</span><strong id="live-votes"><?=$snapshot['voted']?> <small>de <?=$snapshot['eligible']?></small></strong></article>
+                <article><span>Pendientes</span><strong id="live-pending"><?=$snapshot['pending']?></strong></article>
+                <article><span>Pregunta visible</span><strong id="live-question" class="cc-question-stat"><?=$current ? htmlspecialchars($current['text']) : 'Sin seleccionar'?></strong></article>
             </section>
 
             <section class="cc-module">
@@ -164,7 +164,7 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
 
             <section class="cc-module cc-audit-module">
                 <header><div><span class="cc-module-step">3</span><div><h2>Actividad reciente</h2><p>Trazabilidad de las últimas acciones.</p></div></div><a class="v-link" href="/audit.php?election_id=<?=$id?>">Ver auditoría completa →</a></header>
-                <div class="cc-feed">
+                <div class="cc-feed" id="live-activity">
                     <?php if (!$activity): ?><p class="v-muted">Sin actividad reciente.</p><?php endif; ?>
                     <?php foreach (array_slice($activity, 0, 6) as $event): ?><div><time><?=htmlspecialchars(date('H:i', strtotime($event['created_at'])))?></time><i></i><strong><?=htmlspecialchars(ucfirst(str_replace(['.', '_'], ' ', (string) $event['event_type'])))?></strong></div><?php endforeach; ?>
                 </div>
@@ -172,5 +172,54 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
         </main>
     </div>
 </div>
+<script>
+(() => {
+    const url = '/live-status.php?election_id=<?= $id ?>';
+    const initialStatus = <?= json_encode($election['status']) ?>;
+    const activity = document.getElementById('live-activity');
+    let busy = false;
+    async function refresh() {
+        if (busy || document.hidden) return;
+        busy = true;
+        try {
+            const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.status !== initialStatus) { location.reload(); return; }
+            document.getElementById('live-participation').textContent = data.participation + '%';
+            document.getElementById('live-progress').style.width = Math.min(100, data.participation) + '%';
+            const votes = document.getElementById('live-votes');
+            votes.replaceChildren(document.createTextNode(data.voted + ' '));
+            const total = document.createElement('small');
+            total.textContent = 'de ' + data.eligible;
+            votes.append(total);
+            document.getElementById('live-pending').textContent = data.pending;
+            document.getElementById('live-question').textContent = data.current_question || 'Sin seleccionar';
+            activity.replaceChildren();
+            if (!data.activity.length) {
+                const p = document.createElement('p');
+                p.className = 'v-muted';
+                p.textContent = 'Sin actividad reciente.';
+                activity.append(p);
+            }
+            for (const event of data.activity) {
+                const line = document.createElement('div');
+                const time = document.createElement('time');
+                const date = new Date(event.created_at.replace(' ', 'T'));
+                time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'});
+                const dot = document.createElement('i');
+                const label = document.createElement('strong');
+                label.textContent = event.event_type.replace(/[._]/g, ' ').replace(/^./, x => x.toUpperCase());
+                line.append(time, dot, label);
+                activity.append(line);
+            }
+        } catch (_) {
+            // Preserve the last valid values when the connection is interrupted.
+        } finally { busy = false; }
+    }
+    setInterval(refresh, 5000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+})();
+</script>
 </body>
 </html>
