@@ -90,7 +90,7 @@ final class VotingService
             if (!$state || $state['status'] !== 'open'
                 || (!empty($state['starts_at']) && strtotime((string)$state['starts_at']) > $now)
                 || (!empty($state['ends_at']) && strtotime((string)$state['ends_at']) < $now)) {
-                throw new \\RuntimeException('La votación ya no está abierta.');
+                throw new \RuntimeException('La votación ya no está abierta.');
             }
             // Recheck the invitation inside the transaction, after acquiring the election lock.
             $tokenLock=$pdo->prepare('SELECT vt.verified_at,vt.consumed_at,vt.otp_locked_at,cm.has_voted,cm.status
@@ -101,7 +101,7 @@ final class VotingService
             if (!$fresh || empty($fresh['verified_at']) || !empty($fresh['consumed_at'])
                 || !empty($fresh['otp_locked_at']) || (int)$fresh['has_voted']===1
                 || $fresh['status']!=='eligible') {
-                throw new \\RuntimeException('La invitación ya no está habilitada para votar.');
+                throw new \RuntimeException('La invitación ya no está habilitada para votar.');
             }
             $stmt=$pdo->prepare('INSERT INTO ballots (election_id,ballot_token,weight,submitted_at) VALUES (:election_id,:ballot_token,:weight,NOW())');
             $stmt->execute(['election_id'=>(int)$context['election_id'],'ballot_token'=>$ballotToken,'weight'=>(float)$context['vote_weight']]);
@@ -120,8 +120,8 @@ final class VotingService
             $updateToken=$pdo->prepare('UPDATE voter_tokens SET consumed_at=NOW() WHERE id=:id AND consumed_at IS NULL');
             $updateToken->execute(['id'=>(int)$context['token_id']]);
             if($updateToken->rowCount()!==1) throw new \RuntimeException('La invitación ya fue utilizada.');
-            $pdo->commit();
             Audit::log('vote.submitted','election',(int)$context['election_id'],['ballot_receipt'=>hash('sha256',$ballotToken)]);
+            $pdo->commit();
             return hash('sha256',$ballotToken);
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
