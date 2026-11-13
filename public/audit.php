@@ -13,12 +13,18 @@ $offset=($page-1)*200;
 if($electionId>0){
     $election=ElectionService::find($electionId);
     if(!$election||!Authorization::canReviewElection($user,$electionId,(int)$election['organization_id'])){http_response_code(403);exit('No autorizado.');}
-    $stmt=$pdo->prepare('SELECT DISTINCT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id LEFT JOIN census_members cm ON a.entity_type="census_member" AND cm.id=a.entity_id WHERE (a.entity_type="election" AND a.entity_id=:eid) OR JSON_EXTRACT(a.metadata,"$.election_id")=:json_eid OR cm.election_id=:census_eid ORDER BY a.created_at DESC LIMIT 201 OFFSET {$offset}');
-    $stmt->execute(['eid'=>$electionId,'json_eid'=>$electionId,'census_eid'=>$electionId]);
+    $stmt=$pdo->prepare('SELECT DISTINCT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id LEFT JOIN census_members cm ON a.entity_type="census_member" AND cm.id=a.entity_id WHERE (a.entity_type="election" AND a.entity_id=:eid) OR JSON_EXTRACT(a.metadata,"$.election_id")=:json_eid OR cm.election_id=:census_eid ORDER BY a.created_at DESC LIMIT 201 OFFSET :offset');
+    $stmt->bindValue(':eid',$electionId,PDO::PARAM_INT);
+    $stmt->bindValue(':json_eid',$electionId,PDO::PARAM_INT);
+    $stmt->bindValue(':census_eid',$electionId,PDO::PARAM_INT);
+    $stmt->bindValue(':offset',$offset,PDO::PARAM_INT);
+    $stmt->execute();
 }elseif($user['role']==='witness'){
-    $stmt=$pdo->prepare('SELECT DISTINCT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id JOIN election_witnesses ew ON ew.user_id=:uid WHERE (a.entity_type="election" AND a.entity_id=ew.election_id) OR JSON_EXTRACT(a.metadata,"$.election_id")=ew.election_id ORDER BY a.created_at DESC LIMIT 201 OFFSET {$offset}');$stmt->execute(['uid'=>$user['id']]);
+    $stmt=$pdo->prepare('SELECT DISTINCT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id JOIN election_witnesses ew ON ew.user_id=:uid WHERE (a.entity_type="election" AND a.entity_id=ew.election_id) OR JSON_EXTRACT(a.metadata,"$.election_id")=ew.election_id ORDER BY a.created_at DESC LIMIT 201 OFFSET :offset');$stmt->bindValue(':uid',(int)$user['id'],PDO::PARAM_INT);$stmt->bindValue(':offset',$offset,PDO::PARAM_INT);$stmt->execute();
 }elseif($user['role']==='admin'){
-    $stmt=$pdo->query('SELECT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 201 OFFSET {$offset}');
+    $stmt=$pdo->prepare('SELECT a.*,u.name user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 201 OFFSET :offset');
+    $stmt->bindValue(':offset',$offset,PDO::PARAM_INT);
+    $stmt->execute();
 }else{
     $stmt=$pdo->prepare(
         'SELECT DISTINCT a.*,u.name user_name
@@ -29,9 +35,11 @@ if($electionId>0){
          WHERE (a.entity_type="election" AND a.entity_id=em.election_id)
             OR JSON_EXTRACT(a.metadata,"$.election_id")=em.election_id
             OR cm.election_id=em.election_id
-         ORDER BY a.created_at DESC LIMIT 201 OFFSET {$offset}'
+         ORDER BY a.created_at DESC LIMIT 201 OFFSET :offset'
     );
-    $stmt->execute(['uid'=>(int)$user['id']]);
+    $stmt->bindValue(':uid',(int)$user['id'],PDO::PARAM_INT);
+    $stmt->bindValue(':offset',$offset,PDO::PARAM_INT);
+    $stmt->execute();
 }
 $logs=$stmt->fetchAll(PDO::FETCH_ASSOC);
 $hasNext=count($logs)>200;
@@ -63,7 +71,7 @@ $eventLabels=[
 ?>
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auditoría | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head><body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, $electionId ? 'election-audit' : 'audit', $electionId ?: null, $election['title'] ?? null); ?>
-<div class="v-main"><header class="v-topbar"><?php if($electionId):?><a class="v-link" href="<?=$user['role']==='witness'?'/fiscalizacion.php?election_id='.$electionId:'/control.php?election_id='.$electionId?>">← Volver al proceso</a><span style="flex:1"></span><?php endif;?><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content"><div class="v-headrow"><div><div class="v-kicker">Trazabilidad</div><h1 class="v-title">Auditoría<?=$electionId?' de la votación':''?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$electionId?'Registro limitado al proceso seleccionado.':($user['role']==='admin'?'Registro de los últimos 200 eventos de la plataforma.':($user['role']==='witness'?'Actividad de tus procesos asignados.':'Actividad de tu organización.'))?></p></div><span class="v-status v-status-open">✓ Registro activo</span></div>
+<div class="v-main"><header class="v-topbar"><?php if($electionId):?><a class="v-link" href="<?=$user['role']==='witness'?'/fiscalizacion.php?election_id='.$electionId:'/control.php?election_id='.$electionId?>">← Volver al proceso</a><span style="flex:1"></span><?php endif;?><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content"><div class="v-headrow"><div><div class="v-kicker">Trazabilidad</div><h1 class="v-title">Auditoría<?=$electionId?' de la votación':''?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$electionId?'Registro limitado al proceso seleccionado.':($user['role']==='admin'?'Historial de eventos de la plataforma, 200 por página.':($user['role']==='witness'?'Actividad de tus procesos asignados.':'Actividad de tu organización.'))?></p></div><span class="v-status v-status-open">✓ Registro activo</span></div>
 <div class="v-alert" style="background:#eef6ff;border:1px solid #cfe2ff"><strong>¿Para qué sirve?</strong> Permite revisar quién realizó cada acción, cuándo ocurrió y sobre qué elemento. No permite modificar ni eliminar eventos.</div>
 <section class="v-card v-pad v-table-wrap"><?php if(!$logs):?><div style="text-align:center;padding:35px"><h2>Sin actividad registrada</h2><p class="v-muted">Las acciones realizadas en tu organización aparecerán aquí automáticamente.</p></div><?php else:?><table class="v-table"><thead><tr><th>Fecha</th><th>Actividad</th><th>Elemento</th><th>Realizado por</th><th>Dirección IP</th></tr></thead><tbody><?php foreach($logs as $log):?><tr><td style="white-space:nowrap"><?=htmlspecialchars($log['created_at'])?></td><td><strong style="color:var(--blue)"><?=htmlspecialchars($eventLabels[$log['event_type']]??$log['event_type'])?></strong></td><td><?=htmlspecialchars($log['entity_type'])?> #<?=htmlspecialchars((string)$log['entity_id'])?></td><td><?=htmlspecialchars((string)($log['user_name']?:'Sistema / votante'))?></td><td class="v-muted"><?=htmlspecialchars((string)($log['ip_address']?:'—'))?></td></tr><?php endforeach;?></tbody></table><?php endif;?></section>
 <nav aria-label="Páginas de auditoría" style="display:flex;gap:16px;margin-top:18px">
