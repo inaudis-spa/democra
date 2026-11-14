@@ -42,21 +42,41 @@ final class ResultService
         $status=$pdo->prepare('SELECT status FROM elections WHERE id=:id');$status->execute(['id'=>$electionId]);
         if($status->fetchColumn()!=='closed')throw new \RuntimeException('Los resultados solo pueden certificarse después de cerrar la votación.');
         $summary=self::summary($electionId);
-        $canonical=json_encode($summary, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
-        if ($canonical===false) throw new \RuntimeException('No fue posible serializar los resultados.');
+        $legacyCanonical=json_encode($summary,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
+        $canonical=self::canonicalJson($summary);
+        if ($legacyCanonical===false) throw new \RuntimeException('No fue posible serializar los resultados.');
         $hash=hash('sha256',$canonical);
         $existing=$pdo->prepare('SELECT results_json,sha256_hash FROM result_certificates WHERE election_id=:id');$existing->execute(['id'=>$electionId]);$certificate=$existing->fetch(PDO::FETCH_ASSOC);
         if($certificate){
             $storedJson=(string)$certificate['results_json'];
             $storedHash=(string)$certificate['sha256_hash'];
-            if(!hash_equals($storedHash,hash('sha256',$storedJson))){
+            // MySQL normalizes JSON storage (spacing and representation), so verify
+            // the same canonical encoding that was hashed when the certificate was created.
+            $storedResults=json_decode($storedJson,true,512,JSON_THROW_ON_ERROR);
+            $storedCanonical=self::canonicalJson($storedResults);
+            $canonicalMatch=hash_equals($canonical,$storedCanonical);
+            $currentHashMatch=hash_equals($storedHash,$hash);
+            $legacyHashMatch=$canonicalMatch&&hash_equals($storedHash,hash('sha256',$legacyCanonical));
+            if(!$canonicalMatch||(!$currentHashMatch&&!$legacyHashMatch)){
                 throw new \RuntimeException('La certificación almacenada no supera la verificación de integridad.');
             }
-            return ['sha256'=>$storedHash,'results'=>json_decode($storedJson,true,512,JSON_THROW_ON_ERROR)];
+            return ['sha256'=>$storedHash,'results'=>$storedResults];
         }
         $stmt=$pdo->prepare('INSERT INTO result_certificates (election_id,results_json,sha256_hash,generated_at,generated_by) VALUES (:election_id,:results_json,:hash,NOW(),:generated_by)');
         $stmt->execute(['election_id'=>$electionId,'results_json'=>$canonical,'hash'=>$hash,'generated_by'=>$userId]);
         Audit::log('results.certified','election',$electionId,['sha256'=>$hash],$userId);
         return ['sha256'=>$hash,'results'=>$summary];
+    }
+
+    private static function canonicalJson(array $value): string
+    {
+        $sort=function(array $items) use (&$sort): array {
+            foreach($items as $key=>$item)if(is_array($item))$items[$key]=$sort($item);
+            if(!array_is_list($items))ksort($items,SORT_STRING);
+            return $items;
+        };
+        $json=json_encode($sort($value),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
+        if($json===false)throw new \RuntimeException('No fue posible serializar los resultados.');
+        return $json;
     }
 }
