@@ -1,4 +1,12 @@
 (() => {
+  const onboarding = document.querySelector('[data-onboarding-banner]');
+  const onboardingStorageKey = 'inaudis-onboarding-hidden';
+  if (onboarding && localStorage.getItem(onboardingStorageKey) === '1') onboarding.hidden = true;
+  document.querySelector('[data-hide-onboarding]')?.addEventListener('click', () => {
+    onboarding.hidden = true;
+    localStorage.setItem(onboardingStorageKey, '1');
+  });
+
   const definitions = [
     { target: '[data-tour="welcome"]', title: 'Bienvenido a QUORUM', text: 'Este panel resume tus procesos. El recorrido señalará cada opción directamente en la pantalla para que sepas dónde encontrarla.' },
     { target: '[data-tour="new-election"]', title: 'Crea una votación', text: 'Comienza aquí. Define el nombre, las fechas y la modalidad del nuevo proceso electoral.' },
@@ -9,7 +17,10 @@
     { target: '[data-tour="guide"]', title: 'Consulta la guía cuando quieras', text: 'La guía completa explica el flujo según tu perfil. También puedes repetir este recorrido desde el botón “¿Cómo funciona?”.' }
   ];
 
-  const steps = definitions.filter(step => !step.optional || document.querySelector(step.target));
+  const steps = definitions.filter(step => {
+    const target = document.querySelector(step.target);
+    return target && !target.hidden && (!step.optional || target);
+  });
   if (!steps.length) return;
 
   let current = 0;
@@ -80,7 +91,7 @@
   function render() {
     const step = steps[current];
     activeTarget = document.querySelector(step.target);
-    if (!activeTarget) {
+    if (!activeTarget || activeTarget.hidden) {
       if (current < steps.length - 1) { current += 1; render(); }
       return;
     }

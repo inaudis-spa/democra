@@ -15,14 +15,39 @@
     witnessFiscal: {icon:'⚖',category:'Votación actual',title:'Fiscalización',purpose:'Revisa y certifica cada hito del proceso.',objective:'Dejar evidencia SHA-256 de los hechos revisados personalmente.',steps:['Abre una votación asignada.','Lee el bloque “Siguiente hito”.','Comprueba personalmente la información indicada.','Presiona “Certificar este hito” cuando esté habilitado.','Confirma que la evidencia aparezca en la cadena.','Espera el estado correcto antes de continuar con el siguiente hito.'],result:'Cada hito aparece con fecha, Ministro de Fe y huella SHA-256.',warning:'Respeta el orden y nunca certifiques algo que no revisaste.',focus:'Certifica únicamente el siguiente hito disponible.'},
     voterAccess: {icon:'1',category:'Votante',title:'Abrir la invitación',purpose:'Accede de forma segura a tu votación.',objective:'Confirmar que el enlace corresponde al proceso esperado.',steps:['Abre el enlace personal que recibiste.','Comprueba que la pantalla muestre QUORUM.','Revisa el nombre de la votación.','No compartas el enlace con otra persona.'],result:'La pantalla solicita un código OTP de seis números.',warning:'Si el enlace es inválido, solicita uno nuevo al organizador.',focus:'Verifica el nombre antes de continuar.'},
     voterOtp: {icon:'2',category:'Votante',title:'Validar el código OTP',purpose:'Confirma tu acceso con un código temporal.',objective:'Habilitar la papeleta sin registrar todavía un voto.',steps:['Busca el código OTP recibido.','Escribe sus seis números.','Presiona “Validar y continuar”.','Si venció, solicita otro código.'],result:'La papeleta se muestra con sus preguntas y alternativas.',warning:'Varios intentos incorrectos pueden bloquear la invitación.',focus:'Ingresa exactamente los seis números.'},
-    voterVote: {icon:'3',category:'Votante',title:'Emitir y comprobar el voto',purpose:'Selecciona, confirma y guarda tu comprobante.',objective:'Registrar tu preferencia una sola vez y conservar evidencia de recepción.',steps:['Lee la pregunta y todas las alternativas.','Marca tu preferencia.','Revisa cuidadosamente la selección.','Presiona “Confirmar voto”.','Acepta la confirmación final.','Guarda la huella SHA-256 o toma una captura.'],result:'La pantalla confirma que el voto fue registrado.',warning:'Después de confirmar no podrás modificar ni repetir el voto.',focus:'Guarda el comprobante final.'}
+    voterVote: {icon:'3',category:'Votante',title:'Emitir y comprobar el voto',purpose:'Selecciona, confirma y guarda tu comprobante.',objective:'Registrar tu preferencia una sola vez y conservar evidencia de recepción.',steps:['Lee la pregunta y todas las alternativas.','Marca tu preferencia.','Revisa cuidadosamente la selección.','Presiona “Confirmar voto”.','Acepta la confirmación final.','Guarda la huella SHA-256 o toma una captura.'],result:'La pantalla confirma que el voto fue registrado.',warning:'Después de confirmar no podrás modificar ni repetir el voto.',focus:'Guarda el comprobante final.'},
+    logout: {icon:'↪',category:'Sesión',title:'Cerrar sesión',purpose:'Finaliza de forma segura tu acceso administrativo.',objective:'Evitar que otra persona utilice tu cuenta en el mismo equipo.',steps:['Busca tu nombre en la parte inferior del menú izquierdo.','Presiona “Cerrar sesión”.','Confirma que aparezca nuevamente la pantalla de acceso.','Si el equipo es compartido, cierra también el navegador.'],result:'El sistema vuelve al login y la sesión anterior deja de estar disponible.',warning:'No basta con cerrar la pestaña; utiliza siempre “Cerrar sesión”.',focus:'Presiona “Cerrar sesión” al terminar.'}
   };
 
   const profiles = {
-    admin: {name:'Administrador',badge:'AD',lessons:['dashboard','elections','organizations','team','audit','guide','control','configuration','census','fiscalAdmin','results','processAudit']},
-    organizer: {name:'Organizador',badge:'OR',lessons:['dashboard','elections','team','audit','guide','control','configuration','census','fiscalAdmin','results','processAudit']},
-    witness: {name:'Ministro de Fe',badge:'MF',lessons:['elections','witnessFiscal','results','processAudit','audit','guide']},
-    voter: {name:'Votante',badge:'VO',lessons:['voterAccess','voterOtp','voterVote','guide']}
+    admin: {name:'Administrador',badge:'AD',lessons:['dashboard','elections','organizations','team','audit','guide','control','configuration','census','fiscalAdmin','results','processAudit','logout'],nav:['Inicio','Votaciones','Organizaciones','Equipo y accesos','Auditoría general','Cómo funciona','Cerrar sesión'],context:['Centro de control','Configuración','Participantes','Fiscalización','Resultados','Auditoría del proceso'],can:'crear clientes, usuarios y votaciones; asignar responsables y operar cualquier proceso.',cannot:'emitir votos administrativos ni certificar hitos en nombre de un Ministro de Fe.'},
+    organizer: {name:'Organizador',badge:'OR',lessons:['dashboard','elections','team','audit','guide','control','configuration','census','fiscalAdmin','results','processAudit','logout'],nav:['Inicio','Votaciones','Equipo y accesos','Auditoría general','Cómo funciona','Cerrar sesión'],context:['Centro de control','Configuración','Participantes','Fiscalización','Resultados','Auditoría del proceso'],can:'preparar y operar solamente las votaciones donde fuiste asignado como encargado.',cannot:'ver procesos no asignados, crear clientes ni certificar hitos como Ministro de Fe.'},
+    witness: {name:'Ministro de Fe',badge:'MF',lessons:['elections','witnessFiscal','results','processAudit','audit','guide','logout'],nav:['Votaciones','Auditoría general','Cómo funciona','Cerrar sesión'],context:['Fiscalización','Resultados','Auditoría del proceso'],can:'revisar procesos asignados, certificar tus hitos y consultar resultados y auditoría.',cannot:'editar papeletas o padrones, abrir o cerrar votaciones, asignar usuarios o certificar resultados administrativos.'},
+    voter: {name:'Votante',badge:'VO',lessons:['voterAccess','voterOtp','voterVote'],nav:[],context:[],can:'validar tu invitación, marcar una preferencia y guardar el comprobante.',cannot:'entrar al panel administrativo, consultar otros votos o votar dos veces.'}
+  };
+
+  const locations = {
+    dashboard:'Menú izquierdo → Inicio',elections:'Menú izquierdo → Votaciones',organizations:'Menú izquierdo → Organizaciones',team:'Menú izquierdo → Equipo y accesos',audit:'Menú izquierdo → Auditoría general',guide:'Menú izquierdo → Cómo funciona',control:'Votación actual → Centro de control',configuration:'Votación actual → Configuración',census:'Votación actual → Participantes',fiscalAdmin:'Votación actual → Fiscalización',witnessFiscal:'Votación actual → Fiscalización',results:'Votación actual → Resultados',processAudit:'Votación actual → Auditoría del proceso',voterAccess:'Enlace personal recibido',voterOtp:'Invitación → Validación OTP',voterVote:'Papeleta → Confirmación del voto',logout:'Parte inferior del menú → Cerrar sesión'
+  };
+
+  const quizzes = {
+    dashboard:{q:'Si una votación no aparece en tu Inicio, ¿qué debes revisar primero?',o:['Que el usuario esté asignado al proceso','Crear nuevamente la votación','Cambiar el navegador'],c:0,e:'Inicio respeta las asignaciones. Crear duplicados no soluciona un problema de permisos.'},
+    elections:{q:'¿Qué debes comprobar antes de abrir una tarjeta?',o:['El nombre y estado del proceso','La cantidad de administradores','El color de la pantalla'],c:0,e:'El nombre y el estado evitan operar por error una votación distinta.'},
+    organizations:{q:'¿Quién puede crear una organización?',o:['Cualquier votante','Solo el Administrador','Solo el Ministro de Fe'],c:1,e:'Organizaciones es una función exclusiva del Administrador.'},
+    team:{q:'Después de crear un Organizador, ¿ya ve todas las votaciones del cliente?',o:['Sí, automáticamente','No, debe ser asignado a cada votación','Solo si cambia su contraseña'],c:1,e:'La creación habilita las credenciales; la asignación define qué proceso puede administrar.'},
+    audit:{q:'¿Para qué sirve Auditoría?',o:['Modificar votos','Reconstruir quién hizo cada acción y cuándo','Cambiar el estado de usuarios'],c:1,e:'Auditoría es un registro de solo lectura y trazabilidad.'},
+    guide:{q:'¿El progreso de este manual cambia datos de una votación?',o:['Sí','No','Solo para el Administrador'],c:1,e:'El manual es una experiencia de aprendizaje independiente y segura.'},
+    control:{q:'¿Qué ocurre al abrir una votación?',o:['Se eliminan las preguntas','Se bloquean papeleta y padrón','Se publican resultados'],c:1,e:'El bloqueo protege la configuración aprobada durante la recepción de votos.'},
+    configuration:{q:'¿Cuándo debes terminar de editar la papeleta?',o:['Antes de abrir la votación','Después de recibir votos','Después de generar el acta'],c:0,e:'Una votación abierta ya no permite modificar preguntas ni alternativas.'},
+    census:{q:'¿Cuándo aparece la acción “Generar invitación”?',o:['Cuando la votación está abierta','Mientras se crea la organización','Después de certificar resultados'],c:0,e:'Las invitaciones se generan para participantes pendientes durante una votación abierta.'},
+    fiscalAdmin:{q:'¿Quién puede certificar los hitos del Ministro de Fe?',o:['Cualquier encargado','El propio Ministro de Fe asignado','Un votante'],c:1,e:'La separación de funciones impide que el encargado certifique en nombre del fiscalizador.'},
+    witnessFiscal:{q:'¿Puede el Ministro certificar los hitos en cualquier orden?',o:['Sí','No, debe seguir el siguiente hito habilitado','Solo si la votación está en borrador'],c:1,e:'El sistema exige una secuencia y un estado válido para cada hito.'},
+    results:{q:'¿Cuándo se muestra el escrutinio detallado?',o:['Antes de abrir','Durante la recepción de votos','Después del cierre'],c:2,e:'Durante la votación solo se informa participación; el detalle se protege hasta cerrar.'},
+    processAudit:{q:'¿Qué diferencia tiene esta opción?',o:['Muestra solo la votación actual','Permite borrar eventos','Muestra todas las organizaciones'],c:0,e:'Auditoría del proceso limita la trazabilidad al proceso seleccionado.'},
+    voterAccess:{q:'¿Puedes compartir tu enlace personal?',o:['Sí, con cualquier persona','No, identifica tu invitación','Solo después de votar'],c:1,e:'El enlace y el OTP son credenciales personales de acceso a la papeleta.'},
+    voterOtp:{q:'¿Ingresar correctamente el OTP registra inmediatamente el voto?',o:['Sí','No, solo habilita la papeleta','Solo en voto público'],c:1,e:'El voto se registra únicamente después de seleccionar y confirmar una alternativa.'},
+    voterVote:{q:'¿Qué debes hacer después de confirmar el voto?',o:['Volver a votar','Guardar la huella o comprobante','Compartir tu preferencia'],c:1,e:'La huella sirve como respaldo de recepción y no revela la preferencia.'},
+    logout:{q:'¿Cuál es la forma correcta de terminar en un equipo compartido?',o:['Cerrar solamente la pestaña','Usar “Cerrar sesión” y cerrar el navegador','Dejar la pantalla abierta'],c:1,e:'Cerrar sesión invalida el acceso administrativo activo en ese navegador.'}
   };
 
   let profileKey = null;
@@ -55,17 +80,39 @@
   function renderPreview(lesson) {
     const items = document.querySelector('[data-preview-items]');
     items.innerHTML = '';
-    lessons().forEach(item => {
+    const shell=document.querySelector('.preview-shell');
+    shell.classList.toggle('voter-mode',profileKey==='voter');
+    const profile=profiles[profileKey];
+    const labels=profileKey==='voter'?[]:[...profile.nav,...profile.context];
+    labels.forEach(label => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = item.key===lesson.key ? 'active' : '';
-      button.textContent = item.title;
+      button.className = label===lesson.title ? 'active' : '';
+      button.textContent = label;
       items.appendChild(button);
     });
     document.querySelector('[data-preview-kicker]').textContent=lesson.category;
     document.querySelector('[data-preview-title]').textContent=lesson.title;
     document.querySelector('[data-preview-description]').textContent=lesson.purpose;
     document.querySelector('[data-preview-focus]').textContent=lesson.focus;
+  }
+
+  function renderQuiz(lesson) {
+    const quiz=quizzes[lesson.key];
+    const options=document.querySelector('[data-quiz-options]');
+    const feedback=document.querySelector('[data-quiz-feedback]');
+    document.querySelector('[data-quiz-question]').textContent=quiz.q;
+    options.innerHTML=''; feedback.hidden=true; feedback.textContent='';
+    quiz.o.forEach((label,index)=>{
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.addEventListener('click',()=>{
+        options.querySelectorAll('button').forEach((option,optionIndex)=>{option.disabled=true;if(optionIndex===quiz.c)option.classList.add('correct')});
+        if(index!==quiz.c)button.classList.add('incorrect');
+        feedback.innerHTML=`<strong>${index===quiz.c?'Respuesta correcta.':'Revisa esta respuesta.'}</strong> ${quiz.e}`;
+        feedback.hidden=false;
+      });
+      options.appendChild(button);
+    });
   }
 
   function render() {
@@ -81,6 +128,10 @@
     document.querySelector('[data-lesson-category]').textContent=lesson.category;
     document.querySelector('[data-lesson-title]').textContent=lesson.title;
     document.querySelector('[data-lesson-purpose]').textContent=lesson.purpose;
+    document.querySelector('[data-lesson-access]').textContent=`Disponible para ${profile.name}`;
+    document.querySelector('[data-lesson-location]').textContent=locations[lesson.key];
+    document.querySelector('[data-profile-can]').textContent=profile.can;
+    document.querySelector('[data-profile-cannot]').textContent=profile.cannot;
     document.querySelector('[data-lesson-objective]').textContent=lesson.objective;
     document.querySelector('[data-lesson-result]').textContent=lesson.result;
     document.querySelector('[data-lesson-warning]').textContent=lesson.warning;
@@ -94,7 +145,7 @@
     const progress=Math.round(done.size*100/course.length);
     document.querySelector('[data-progress-label]').textContent=`${progress}%`;
     document.querySelector('[data-progress-bar]').style.width=`${progress}%`;
-    renderNavigation(); renderPreview(lesson);
+    renderNavigation(); renderPreview(lesson); renderQuiz(lesson);
   }
 
   function selectProfile(key) {

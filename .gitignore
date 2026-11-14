@@ -5,6 +5,9 @@
 /node_modules/
 /storage/logs/*
 /storage/cache/*
+/.runtime/
+/tmp/
+/output/
 *.log
 .DS_Store
 Thumbs.db

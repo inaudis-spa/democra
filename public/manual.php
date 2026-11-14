@@ -21,6 +21,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
     <title>Centro de aprendizaje | QUORUM</title>
     <link rel="stylesheet" href="/assets/quorum.css">
     <link rel="stylesheet" href="/assets/manual.css">
+    <link rel="stylesheet" href="/assets/manual-learning.css">
     <script src="/assets/manual.js" defer></script>
 </head>
 <body class="vota-ui manual-page" data-default-profile="<?=htmlspecialchars($defaultProfile,ENT_QUOTES,'UTF-8')?>" data-return-path="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>">
@@ -77,6 +78,9 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
             <div class="lesson-breadcrumb"><span data-lesson-position>Lección 1</span><span>·</span><span data-profile-name-copy>Administrador</span></div>
             <div class="lesson-heading"><div><span class="lesson-icon" data-lesson-icon>⌂</span><div><span class="manual-eyebrow" data-lesson-category>Plataforma</span><h2 data-lesson-title>Inicio</h2><p data-lesson-purpose></p></div></div><span class="lesson-access" data-lesson-access>Disponible para tu perfil</span></div>
 
+            <div class="lesson-location"><span>Estás aprendiendo esta pantalla:</span><strong data-lesson-location></strong></div>
+            <div class="profile-permissions"><div><span>✓</span><p><strong>Con este perfil puedes</strong><small data-profile-can></small></p></div><div class="cannot"><span>—</span><p><strong>Con este perfil no puedes</strong><small data-profile-cannot></small></p></div></div>
+
             <div class="lesson-layout">
                 <article class="lesson-content">
                     <div class="lesson-callout"><strong>Objetivo de esta pantalla</strong><p data-lesson-objective></p></div>
@@ -95,6 +99,12 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
                     <p class="preview-caption">La flecha indica dónde encontrarás esta opción dentro del sistema.</p>
                 </aside>
             </div>
+
+            <section class="lesson-quiz" data-quiz>
+                <div><span class="manual-eyebrow">Comprueba lo aprendido</span><h3 data-quiz-question></h3></div>
+                <div class="quiz-options" data-quiz-options></div>
+                <div class="quiz-feedback" data-quiz-feedback hidden></div>
+            </section>
 
             <div class="lesson-actions">
                 <button type="button" class="v-btn v-btn-outline" data-previous>← Anterior</button>
