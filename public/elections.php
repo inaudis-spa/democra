@@ -29,7 +29,7 @@ $filterOrganizations=[];foreach($elections as $election){$filterOrganizations[(i
 function electionStatusClass(string $status):string{return $status==='open'?'v-status-open':($status==='closed'?'v-status-closed':'v-status-draft');}
 function electionStatusLabel(string $status):string{return ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'][$status]??$status;}
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votaciones | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"><script src="/assets/elections.js" defer></script></head>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votaciones | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css?v=d79dcf91"><script src="/assets/elections.js?v=4f8b672c" defer></script></head>
 <body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, 'elections'); ?>
 <div class="v-main"><header class="v-topbar"><span class="v-muted"><?=$user['role']==='witness'?'Procesos asignados':'Gestión electoral'?></span><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
