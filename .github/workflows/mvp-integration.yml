@@ -58,6 +58,9 @@ jobs:
       - name: Apply sequential voting migration
         run: mysql -h 127.0.0.1 -uroot -proot inaudis_vote < database/migrations/20261116_sequential_questions.sql
 
+      - name: Apply OTP validity migration
+        run: mysql -h 127.0.0.1 -uroot -proot inaudis_vote < database/migrations/20261116_election_otp_ttl.sql
+
       - name: Load demo data
         run: mysql -h 127.0.0.1 -uroot -proot < database/seed_demo.sql
 
