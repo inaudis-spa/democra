@@ -8,6 +8,32 @@ use PDO;
 
 final class WitnessService
 {
+    public static function createAndAssign(int $electionId,array $data,int $actorId): int
+    {
+        $pdo=Database::connection();
+        $q=$pdo->prepare('SELECT organization_id FROM elections WHERE id=:id');
+        $q->execute(['id'=>$electionId]);
+        $organizationId=$q->fetchColumn();
+        if(!$organizationId)throw new \InvalidArgumentException('La votación no existe.');
+        if($pdo->inTransaction())throw new \RuntimeException('La operación ya tiene una transacción activa.');
+        $pdo->beginTransaction();
+        try {
+            $userId=UserService::create([
+                'name'=>$data['name']??'',
+                'email'=>$data['email']??'',
+                'password'=>$data['password']??'',
+                'role'=>'witness',
+                'organization_id'=>(int)$organizationId,
+            ]);
+            self::assign($electionId,$userId,$actorId);
+            $pdo->commit();
+            return $userId;
+        }catch(\Throwable $e){
+            if($pdo->inTransaction())$pdo->rollBack();
+            throw $e;
+        }
+    }
+
     public static function assign(int $electionId,int $userId,int $by): void
     {
         $pdo=Database::connection();
