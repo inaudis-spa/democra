@@ -17,7 +17,7 @@ final class VotingService
             'SELECT vt.id token_id, vt.election_id, vt.census_member_id, vt.otp_hash, vt.otp_expires_at, vt.verified_at, vt.consumed_at,
                     cm.name voter_name, cm.vote_weight, cm.has_voted, cm.status member_status,
                     vt.otp_attempts, vt.otp_locked_at,
-                    e.title election_title, e.description, e.voting_mode, e.status election_status, e.starts_at, e.ends_at
+                    e.title election_title, e.description, e.voting_mode, e.question_flow, e.status election_status, e.starts_at, e.ends_at
              FROM voter_tokens vt
              JOIN census_members cm ON cm.id=vt.census_member_id
              JOIN elections e ON e.id=vt.election_id
@@ -48,7 +48,7 @@ final class VotingService
     public static function canVote(array $context): bool
     {
         if (($context['member_status'] ?? '') !== 'eligible') return false;
-        if ((int)($context['has_voted'] ?? 0) === 1) return false;
+        if (($context['question_flow'] ?? 'traditional') !== 'sequential' && (int)($context['has_voted'] ?? 0) === 1) return false;
         if (!empty($context['consumed_at']) || !empty($context['otp_locked_at'])) return false;
         if (empty($context['verified_at'])) return false;
         if (($context['election_status'] ?? '') !== 'open') return false;
@@ -58,6 +58,68 @@ final class VotingService
         return true;
     }
 
+
+    public static function answeredQuestions(int $memberId): array
+    {
+        $stmt=Database::connection()->prepare('SELECT question_id FROM question_participations WHERE census_member_id=:id');
+        $stmt->execute(['id'=>$memberId]);
+        return array_map('intval',$stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    private static function submitSequential(string $rawToken, array $answers, array $context): string
+    {
+        $pdo=Database::connection();
+        $electionId=(int)$context['election_id'];
+        $pdo->beginTransaction();
+        try {
+            $lock=$pdo->prepare('SELECT status,question_flow,starts_at,ends_at FROM elections WHERE id=:id FOR UPDATE');
+            $lock->execute(['id'=>$electionId]);
+            $e=$lock->fetch(PDO::FETCH_ASSOC);
+            if (!$e || $e['question_flow']!=='sequential' || $e['status']!=='open'
+                || (!empty($e['starts_at']) && strtotime($e['starts_at'])>time())
+                || (!empty($e['ends_at']) && strtotime($e['ends_at'])<time())) {
+                throw new \RuntimeException('El proceso no está abierto.');
+            }
+            $token=$pdo->prepare('SELECT vt.verified_at,vt.consumed_at,vt.otp_locked_at,cm.status,cm.vote_weight FROM voter_tokens vt JOIN census_members cm ON cm.id=vt.census_member_id WHERE vt.id=:id FOR UPDATE');
+            $token->execute(['id'=>(int)$context['token_id']]);
+            $fresh=$token->fetch(PDO::FETCH_ASSOC);
+            if (!$fresh || !$fresh['verified_at'] || $fresh['consumed_at'] || $fresh['otp_locked_at'] || $fresh['status']!=='eligible') {
+                throw new \RuntimeException('Invitación no habilitada.');
+            }
+            $stmt=$pdo->prepare("SELECT * FROM questions WHERE election_id=:id AND voting_status='open'");
+            $stmt->execute(['id'=>$electionId]);
+            $questions=$stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (count($questions)!==1) throw new \RuntimeException('No hay una pregunta habilitada.');
+            $q=$questions[0];
+            $qid=(int)$q['id'];
+            if (count($answers)!==1 || !array_key_exists((string)$qid,$answers)) {
+                throw new \RuntimeException('Solo puedes responder la pregunta habilitada.');
+            }
+            $selected=$answers[(string)$qid];
+            if (!is_array($selected)) $selected=[$selected];
+            $selected=array_values(array_unique(array_filter(array_map('intval',$selected))));
+            $opts=$pdo->prepare('SELECT id FROM options WHERE question_id=:id');
+            $opts->execute(['id'=>$qid]);
+            $allowed=array_map('intval',$opts->fetchAll(PDO::FETCH_COLUMN));
+            if (count($selected)<(int)$q['min_choices'] || count($selected)>(int)$q['max_choices']
+                || array_diff($selected,$allowed)) throw new \RuntimeException('Selección inválida.');
+            $participation=$pdo->prepare('INSERT INTO question_participations(question_id,census_member_id) VALUES(:qid,:mid)');
+            $participation->execute(['qid'=>$qid,'mid'=>(int)$context['census_member_id']]);
+            $ballotToken=bin2hex(random_bytes(32));
+            $stmt=$pdo->prepare('INSERT INTO ballots(election_id,ballot_token,weight,submitted_at) VALUES(:eid,:token,:weight,NOW())');
+            $stmt->execute(['eid'=>$electionId,'token'=>$ballotToken,'weight'=>$fresh['vote_weight']]);
+            $ballotId=(int)$pdo->lastInsertId();
+            $stmt=$pdo->prepare('INSERT INTO ballot_answers(ballot_id,question_id,option_id) VALUES(:bid,:qid,:oid)');
+            foreach($selected as $optionId)$stmt->execute(['bid'=>$ballotId,'qid'=>$qid,'oid'=>$optionId]);
+            Audit::log('vote.question_submitted','election',$electionId,['question_id'=>$qid]);
+            $pdo->commit();
+            return hash('sha256',$ballotToken);
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
+
     public static function submit(string $rawToken, array $answers): string
     {
         $pdo=Database::connection();
@@ -65,6 +127,7 @@ final class VotingService
         if (!$context || !self::canVote($context)) {
             throw new \RuntimeException('La invitación no está habilitada para votar.');
         }
+        if (($context['question_flow'] ?? 'traditional') === 'sequential') return self::submitSequential($rawToken,$answers,$context);
         $questions=ElectionService::questions((int)$context['election_id']);
         foreach ($questions as $question) {
             $selected=$answers[(string)$question['id']] ?? [];

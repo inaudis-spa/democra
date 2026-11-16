@@ -49,9 +49,10 @@ final class ElectionService
         $startsAt=trim((string)($data['starts_at']??''));$endsAt=trim((string)($data['ends_at']??''));
         try{$start=$startsAt!==''?new DateTimeImmutable($startsAt):null;$end=$endsAt!==''?new DateTimeImmutable($endsAt):null;}catch(\Throwable){throw new \InvalidArgumentException('Las fechas ingresadas no son válidas.');}
         if($start&&$end&&$end<=$start) throw new \InvalidArgumentException('La fecha de término debe ser posterior a la fecha de inicio.');
+        $flow = ($data['question_flow'] ?? 'traditional') === 'sequential' ? 'sequential' : 'traditional';
         $mode = in_array(($data['voting_mode'] ?? 'secret'), ['secret','public'], true) ? $data['voting_mode'] : 'secret';
-        $stmt = $pdo->prepare('INSERT INTO elections (organization_id,title,description,voting_mode,status,starts_at,ends_at,allow_weighted_vote,created_by) VALUES (:organization_id,:title,:description,:voting_mode,:status,:starts_at,:ends_at,:weighted,:created_by)');
-        $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'status'=>'draft','starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
+        $stmt = $pdo->prepare('INSERT INTO elections (organization_id,title,description,voting_mode,question_flow,status,starts_at,ends_at,allow_weighted_vote,created_by) VALUES (:organization_id,:title,:description,:voting_mode,:question_flow,:status,:starts_at,:ends_at,:weighted,:created_by)');
+        $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'question_flow'=>$flow,'status'=>'draft','starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
         $id=(int)$pdo->lastInsertId();
         $creatorRole=$pdo->prepare('SELECT role FROM users WHERE id=:id');$creatorRole->execute(['id'=>$createdBy]);
         if($creatorRole->fetchColumn()==='organizer'){
@@ -125,6 +126,13 @@ final class ElectionService
             $allowed=['draft'=>['scheduled','open','cancelled'],'scheduled'=>['draft','open','cancelled'],'open'=>['closed','cancelled'],'closed'=>[],'cancelled'=>[]];
             if($status!==$current['status']&&!in_array($status,$allowed[$current['status']]??[],true)) {
                 throw new \RuntimeException('Transición de estado no permitida.');
+            }
+            if($status==='closed') {
+                $flow=$pdo->prepare('SELECT question_flow FROM elections WHERE id=:id');$flow->execute(['id'=>$electionId]);
+                if($flow->fetchColumn()==='sequential') {
+                    $pending=$pdo->prepare("SELECT COUNT(*) FROM questions WHERE election_id=:id AND voting_status<>'closed'");$pending->execute(['id'=>$electionId]);
+                    if((int)$pending->fetchColumn()>0) throw new \RuntimeException('Cierra todas las preguntas antes de finalizar.');
+                }
             }
             if($status==='open'){
                 $q=$pdo->prepare('SELECT COUNT(*) FROM questions WHERE election_id=:id');

@@ -15,6 +15,14 @@ final class LiveControlService
         $tokens->execute(['id'=>$electionId]);$t=$tokens->fetch(PDO::FETCH_ASSOC)?:[];
         $state=$pdo->prepare("SELECT * FROM election_live_state WHERE election_id=:id");$state->execute(['id'=>$electionId]);$live=$state->fetch(PDO::FETCH_ASSOC)?:[];
         $eligible=(int)($s['eligible']??0);$voted=(int)($s['voted']??0);
+        $flow=$pdo->prepare('SELECT question_flow FROM elections WHERE id=:id');$flow->execute(['id'=>$electionId]);
+        if($flow->fetchColumn()==='sequential') {
+            $voted=0;
+            if(!empty($live['current_question_id'])) {
+                $count=$pdo->prepare('SELECT COUNT(*) FROM question_participations WHERE question_id=:qid');
+                $count->execute(['qid'=>(int)$live['current_question_id']]);$voted=(int)$count->fetchColumn();
+            }
+        }
         return ['eligible'=>$eligible,'voted'=>$voted,'pending'=>max(0,$eligible-$voted),'participation'=>$eligible>0?round($voted*100/$eligible,1):0,'authenticated'=>(int)($t['authenticated']??0),'active_sessions'=>(int)($t['active_sessions']??0),'current_question_id'=>(int)($live['current_question_id']??0),'display_results'=>(bool)($live['display_results']??false),'updated_at'=>$live['updated_at']??null];
     }
     public static function setCurrentQuestion(int $electionId,?int $questionId,int $userId): void

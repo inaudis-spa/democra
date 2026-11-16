@@ -19,6 +19,9 @@ if (!$election || !Authorization::canReviewElection($user, $id, (int) $election[
 }
 
 $isAdmin = $user['role'] === 'admin';
+if ($election['question_flow']==='sequential' && !$isAdmin) {
+    header('Location: /sequential-control.php?election_id='.$id);exit;
+}
 if (!$isAdmin) {
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         http_response_code(403);
@@ -48,9 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($action === 'status') {
                 ElectionService::setStatus($id, (string) ($_POST['status'] ?? ''));
             } elseif ($action === 'question') {
+                if($election['question_flow']==='sequential')throw new RuntimeException('Utiliza el control secuencial.');
                 $questionId = ($_POST['question_id'] ?? '') !== '' ? (int) $_POST['question_id'] : null;
                 LiveControlService::setCurrentQuestion($id, $questionId, (int) $user['id']);
             } elseif ($action === 'results') {
+                if($election['question_flow']==='sequential')throw new RuntimeException('Los resultados se muestran al cerrar cada pregunta.');
                 LiveControlService::setDisplayResults($id, !empty($_POST['show']), (int) $user['id']);
             } elseif ($action === 'manager_assign') {
                 ElectionManagerService::assign($id,(int)($_POST['user_id']??0),(int)$user['id']);
@@ -118,6 +123,7 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
             <?php if (isset($_GET['updated'])): ?><div class="v-alert v-alert-ok">✓ Acción aplicada correctamente.</div><?php endif; ?>
             <?php if ($error): ?><div class="v-alert v-alert-error"><?=htmlspecialchars($error)?></div><?php endif; ?>
 
+            <?php if($election['question_flow']==='sequential'):?><div class="v-card v-pad" style="margin:16px 0"><h2>Control de preguntas por etapas</h2><p>Habilitación, cierre y resultados individuales de la asamblea.</p><a class="v-btn v-btn-orange" href="/sequential-control.php?election_id=<?=$id?>">Abrir control secuencial →</a></div><?php endif;?>
             <section class="cc-overview">
                 <article><span>Participación</span><strong id="live-participation"><?=$snapshot['participation']?>%</strong><div class="v-progress"><i id="live-progress" style="width:<?=min(100, $snapshot['participation'])?>%"></i></div></article>
                 <article><span>Votos recibidos</span><strong id="live-votes"><?=$snapshot['voted']?> <small>de <?=$snapshot['eligible']?></small></strong></article>
