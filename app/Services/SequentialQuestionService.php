@@ -43,7 +43,7 @@ final class SequentialQuestionService
                 $stmt = $pdo->prepare('UPDATE election_live_state SET display_results=1,updated_by=:uid WHERE election_id=:eid');
                 $stmt->execute(['eid'=>$electionId,'uid'=>$userId]);
             }
-            Audit::log('question.'.$action.'ed','election',$electionId,['question_id'=>$questionId],$userId);
+            Audit::log($action==='open'?'question.opened':'question.closed','election',$electionId,['question_id'=>$questionId],$userId);
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
