@@ -50,7 +50,7 @@ final class Navigation
                 echo $item('configuration', '/election.php?id='.$id, '&#9881;', 'Configuración');
                 echo $item('census', '/census.php?election_id='.$id, '&#9817;', 'Participantes');
             }
-            echo $item('witness', '/fiscalizacion.php?election_id='.$id, '&#9878;', 'Fiscalización');
+            if ($role !== 'organizer') echo $item('witness', '/fiscalizacion.php?election_id='.$id, '&#9878;', 'Fiscalización');
             echo $item('results', '/results.php?election_id='.$id, '&#9638;', 'Resultados');
             if ($role !== 'organizer') echo $item('election-audit', '/audit.php?election_id='.$id, '&#9687;', 'Auditoría del proceso');
             echo '</div>';
