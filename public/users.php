@@ -8,7 +8,7 @@ use InaudisVote\Core\Navigation;
 use InaudisVote\Services\OrganizationService;
 use InaudisVote\Services\UserService;
 
-$user=Authorization::requireRoles(['admin','organizer']);
+$user=Authorization::requireRoles(['admin']);
 $error=null;$message=null;
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!Csrf::validate($_POST['_csrf']??null))$error='La sesión del formulario venció. Recarga la página e intenta nuevamente.';
