@@ -21,11 +21,36 @@ final class CensusService
         catch(PDOException $e){if((string)$e->getCode()==='23000')throw new \InvalidArgumentException('Este correo ya está registrado en el padrón de la votación.');throw $e;}
         $id=(int)Database::connection()->lastInsertId();Audit::log('census.member_added','census_member',$id,['election_id'=>$electionId,'email'=>$email]);return $id;
     }
-    public static function importCsv(int $electionId,string $csvContent): array
+    public static function importCsv(int $electionId,string $csvContent):array
     {
-        self::requireEditable($electionId);$lines=preg_split('/\r\n|\r|\n/',trim($csvContent))?:[];if(count($lines)>10000)throw new \InvalidArgumentException('El archivo supera el máximo de 10.000 filas.');$created=0;$errors=[];
-        foreach($lines as $index=>$line){if(trim($line)==='')continue;$row=str_getcsv($line,';');if(count($row)<3)$row=str_getcsv($line,',');if($index===0&&isset($row[0])&&preg_match('/rut|nombre|name/i',implode(' ',$row)))continue;try{self::add($electionId,['rut'=>$row[0]??null,'name'=>$row[1]??'','email'=>$row[2]??'','phone'=>$row[3]??null,'vote_weight'=>$row[4]??1,'segment'=>$row[5]??null]);$created++;}catch(\Throwable $e){$errors[]='Fila '.($index+1).': '.user_error_message($e);}}
-        Audit::log('census.csv_imported','election',$electionId,['created'=>$created,'errors'=>count($errors)]);return ['created'=>$created,'errors'=>$errors];
+        self::requireEditable($electionId);
+        $fields=CensusTemplateService::election($electionId);
+        $rows=CensusTemplateService::parse($csvContent,$fields);
+        $created=0;$errors=[];
+        $standard=['rut','name','email','phone','vote_weight','segment'];
+        foreach($rows as $row){
+            $line=$row['line'];$data=$row['data'];
+            if($data===null){$errors[]='Fila '.$line.': cantidad de columnas incorrecta.';continue;}
+            try {
+                foreach($fields as $field){
+                    $key=$field['key'];$value=trim((string)($data[$key]??''));
+                    if($field['required']&&$value==='')throw new \InvalidArgumentException('Falta campo obligatorio: '.$field['label']);
+                    if($value!==''&&$field['type']==='email'&&!filter_var($value,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Email inválido: '.$field['label']);
+                    if($value!==''&&$field['type']==='number'&&!is_numeric($value))throw new \InvalidArgumentException('Número inválido: '.$field['label']);
+                    if($value!==''&&$field['type']==='date'&&!\DateTimeImmutable::createFromFormat('!Y-m-d',$value))throw new \InvalidArgumentException('Fecha inválida (AAAA-MM-DD): '.$field['label']);
+                }
+                $base=array_intersect_key($data,array_flip($standard));
+                $id=self::add($electionId,$base);
+                $custom=array_diff_key($data,array_flip($standard));
+                if($custom){
+                    $q=Database::connection()->prepare('INSERT INTO census_custom_values(census_member_id,values_json) VALUES (?,?)');
+                    $q->execute([$id,json_encode($custom,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
+                }
+                $created++;
+            }catch(\Throwable $e){$errors[]='Fila '.$line.': '.user_error_message($e);}
+        }
+        Audit::log('census.csv_imported','election',$electionId,['created'=>$created,'errors'=>count($errors)]);
+        return ['created'=>$created,'errors'=>$errors];
     }
     public static function generateInvitation(int $electionId,int $memberId): array
     {
