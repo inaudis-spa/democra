@@ -38,10 +38,12 @@ final class CensusService
         $pdo->beginTransaction();
         try {
             // Lock election first, consistent with the voting and closure paths.
-            $election=$pdo->prepare('SELECT status FROM elections WHERE id=:id FOR UPDATE');
+            $election=$pdo->prepare('SELECT status,otp_ttl_minutes FROM elections WHERE id=:id FOR UPDATE');
             $election->execute(['id'=>$electionId]);
-            if($election->fetchColumn()!=='open')throw new \RuntimeException('Abre la votación antes de generar invitaciones.');
-            $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status,email FROM census_members WHERE id=:id AND election_id=:eid FOR UPDATE');
+            $electionRow=$election->fetch(PDO::FETCH_ASSOC);
+            if(!$electionRow || $electionRow['status']!=='open')throw new \RuntimeException('Abre la votación antes de generar invitaciones.');
+            $ttl=max(600,min(86400,(int)$electionRow['otp_ttl_minutes']*60));
+            $stmt=$pdo->prepare('SELECT id,election_id,has_voted,status,email,name FROM census_members WHERE id=:id AND election_id=:eid FOR UPDATE');
             $stmt->execute(['id'=>$memberId,'eid'=>$electionId]);
             $member=$stmt->fetch(PDO::FETCH_ASSOC);
             if(!$member)throw new \RuntimeException('El votante seleccionado no pertenece a esta votación.');
@@ -53,7 +55,7 @@ final class CensusService
             $insert->execute(['election_id'=>$electionId,'member_id'=>$memberId,'token_hash'=>$hash,'otp_hash'=>$otpHash,'ttl'=>$ttl]);
             Audit::log('voter.invitation_generated','census_member',$memberId,['election_id'=>$electionId,'channel'=>'demo']);
             $pdo->commit();
-            return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email'],'expires_in_seconds'=>$ttl];
+            return ['token'=>$raw,'otp'=>$otp,'email'=>$member['email'],'name'=>$member['name'],'expires_in_seconds'=>$ttl];
         } catch(\Throwable $e) {
             if($pdo->inTransaction())$pdo->rollBack();
             throw $e;
