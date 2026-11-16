@@ -5,7 +5,7 @@ use InaudisVote\Core\Authorization;
 use InaudisVote\Core\Database;
 use InaudisVote\Core\Navigation;
 use InaudisVote\Services\ElectionService;
-$user=Authorization::requireRoles(['admin','organizer','witness']);
+$user=Authorization::requireRoles(['admin','witness']);
 $pdo=Database::connection();
 $electionId=(int)($_GET['election_id']??0);
 $page=max(1,min(100000,(int)($_GET['page']??1)));
