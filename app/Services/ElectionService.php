@@ -71,6 +71,15 @@ final class ElectionService
         }
     }
 
+    public static function setOtpTtl(int $electionId,int $minutes): void
+    {
+        if ($minutes<10 || $minutes>1440) throw new \InvalidArgumentException('La vigencia debe estar entre 10 y 1440 minutos.');
+        $stmt=Database::connection()->prepare("UPDATE elections SET otp_ttl_minutes=:minutes WHERE id=:id AND status IN ('draft','scheduled') AND ballot_locked_at IS NULL");
+        $stmt->execute(['minutes'=>$minutes,'id'=>$electionId]);
+        if ($stmt->rowCount()===0) throw new \RuntimeException('La vigencia solo se puede modificar antes de abrir la votación.');
+        Audit::log('election.otp_ttl_changed','election',$electionId,['minutes'=>$minutes]);
+    }
+
     public static function addQuestion(int $electionId, array $data): int
     {
         self::requireEditable($electionId);
