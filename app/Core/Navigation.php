@@ -33,11 +33,11 @@ final class Navigation
         echo '<aside class="v-sidebar">';
         echo '<div class="v-brand"><img class="v-brandmark" src="/assets/quorum-mark.svg" alt=""><span><span class="v-brand-name">QUORUM<small>by INAUDIS</small></span></span></div>';
         echo '<nav class="v-nav" aria-label="Navegación principal"><div class="v-nav-label">Plataforma</div>';
-        echo $item('dashboard', '/dashboard.php', '&#8962;', 'Inicio');
+        if ($role !== 'witness') echo $item('dashboard', '/dashboard.php', '&#8962;', 'Inicio');
         echo $item('elections', '/elections.php', '&#10003;', 'Votaciones');
         if ($role === 'admin') echo $item('organizations', '/organizations.php', '&#9638;', 'Organizaciones');
-        if ($role !== 'witness') echo $item('users', '/users.php', '&#9817;', 'Equipo y accesos');
-        echo $item($electionId ? 'platform-audit' : 'audit', '/audit.php', '&#9687;', 'Auditoría general');
+        if ($role === 'admin') echo $item('users', '/users.php', '&#9817;', 'Equipo y accesos');
+        if ($role !== 'organizer') echo $item($electionId ? 'platform-audit' : 'audit', '/audit.php', '&#9687;', $role === 'admin' ? 'Auditoría general' : 'Auditoría de procesos');
         echo $item('guide', '/manual.php?perfil='.rawurlencode($role), '?', 'Cómo funciona');
 
         if ($electionId !== null && $electionId > 0) {
@@ -45,14 +45,14 @@ final class Navigation
             $title = htmlspecialchars((string) ($electionTitle ?: 'Proceso seleccionado'), ENT_QUOTES, 'UTF-8');
             echo '<div class="v-nav-context"><div class="v-nav-label">Votación actual</div>';
             echo '<div class="v-nav-election" title="'.$title.'"><span>Proceso</span><strong>'.$title.'</strong></div>';
-            if ($role !== 'witness') {
+            if ($role === 'admin') {
                 echo $item('control', '/control.php?election_id='.$id, '&#9679;', 'Centro de control');
                 echo $item('configuration', '/election.php?id='.$id, '&#9881;', 'Configuración');
                 echo $item('census', '/census.php?election_id='.$id, '&#9817;', 'Participantes');
             }
             echo $item('witness', '/fiscalizacion.php?election_id='.$id, '&#9878;', 'Fiscalización');
             echo $item('results', '/results.php?election_id='.$id, '&#9638;', 'Resultados');
-            echo $item('election-audit', '/audit.php?election_id='.$id, '&#9687;', 'Auditoría del proceso');
+            if ($role !== 'organizer') echo $item('election-audit', '/audit.php?election_id='.$id, '&#9687;', 'Auditoría del proceso');
             echo '</div>';
         }
         echo '</nav>';
