@@ -22,7 +22,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             $csv='';if(isset($_FILES['csv_file'])&&($_FILES['csv_file']['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_OK){$size=(int)($_FILES['csv_file']['size']??0);if($size<=0||$size>2*1024*1024)throw new RuntimeException('El archivo CSV debe pesar entre 1 byte y 2 MB.');if(strtolower(pathinfo((string)$_FILES['csv_file']['name'],PATHINFO_EXTENSION))!=='csv')throw new RuntimeException('Solo se permiten archivos .csv.');$csv=(string)file_get_contents((string)$_FILES['csv_file']['tmp_name']);}else{$csv=(string)($_POST['csv']??'');}
             if(trim($csv)==='')throw new RuntimeException('Selecciona un CSV o pega su contenido.');$result=CensusService::importCsv($electionId,$csv);$message='Importados: '.$result['created'].'. Errores: '.count($result['errors']);if($result['errors'])$error=implode(' | ',array_slice($result['errors'],0,3));
          }elseif($action==='invite'){
-            if (!is_file(dirname(__DIR__).'/vendor/autoload.php') || !getenv('MAIL_PASSWORD') || !getenv('MAIL_HOST')) throw new RuntimeException('El correo SMTP no está configurado. No se generaron credenciales.');
+            if (!is_file(dirname(__DIR__).'/vendor/autoload.php') || !getenv('MAIL_PASSWORD') || !getenv('MAIL_HOST') || !getenv('MAIL_USER') || !filter_var((string)getenv('APP_URL'),FILTER_VALIDATE_URL) || !str_starts_with((string)getenv('APP_URL'),'https://')) throw new RuntimeException('Configura PHPMailer, SMTP y APP_URL HTTPS antes de generar credenciales.');
             $inv=CensusService::generateInvitation($electionId,(int)($_POST['member_id']??0));
             InvitationMailService::send($election,$inv);
             $message='Credenciales enviadas por Email a '.$inv['email'].'.';
