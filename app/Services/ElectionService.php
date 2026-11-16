@@ -31,7 +31,7 @@ final class ElectionService
 
     public static function find(int $id): ?array
     {
-        $stmt = Database::connection()->prepare('SELECT e.*, o.name organization_name FROM elections e JOIN organizations o ON o.id=e.organization_id WHERE e.id=:id');
+        $stmt = Database::connection()->prepare('SELECT e.*, o.name organization_name, o.logo_path organization_logo_path FROM elections e JOIN organizations o ON o.id=e.organization_id WHERE e.id=:id');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -76,6 +76,20 @@ final class ElectionService
         }
     }
 
+    public static function updateDetails(int $electionId, array $data): void
+    {
+        self::requireEditable($electionId);
+        $title=trim((string)($data['title']??''));
+        if($title==='') throw new \InvalidArgumentException('El título es obligatorio.');
+        if(mb_strlen($title)>180) throw new \InvalidArgumentException('El título no puede superar 180 caracteres.');
+        $startsAt=trim((string)($data['starts_at']??''));$endsAt=trim((string)($data['ends_at']??''));
+        try{$start=$startsAt!==''?new DateTimeImmutable($startsAt):null;$end=$endsAt!==''?new DateTimeImmutable($endsAt):null;}catch(\Throwable){throw new \InvalidArgumentException('Las fechas ingresadas no son válidas.');}
+        if($start&&$end&&$end<=$start) throw new \InvalidArgumentException('La fecha de término debe ser posterior a la fecha de inicio.');
+        $stmt=Database::connection()->prepare('UPDATE elections SET title=:title,description=:description,starts_at=:starts_at,ends_at=:ends_at WHERE id=:id');
+        $stmt->execute(['title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'id'=>$electionId]);
+        Audit::log('election.details_updated','election',$electionId,['title'=>$title]);
+    }
+
     public static function setOtpTtl(int $electionId,int $minutes): void
     {
         if ($minutes<10 || $minutes>1440) throw new \InvalidArgumentException('La vigencia debe estar entre 10 y 1440 minutos.');
@@ -105,6 +119,27 @@ final class ElectionService
             Audit::log('question.created','question',$questionId,['election_id'=>$electionId]);
             return $questionId;
         } catch(\Throwable $e){$pdo->rollBack();throw $e;}
+    }
+
+    public static function updateQuestion(int $electionId,int $questionId,array $data): void
+    {
+        self::requireEditable($electionId);
+        $text=trim((string)($data['text']??''));
+        $options=array_values(array_filter(array_map('trim',preg_split('/\r\n|\r|\n/',(string)($data['options']??''))?:[])));
+        if($text===''||count($options)<2) throw new \InvalidArgumentException('La pregunta requiere texto y al menos dos alternativas.');
+        $type=($data['question_type']??'single')==='multiple'?'multiple':'single';
+        $max=$type==='multiple'?max(1,min(count($options),(int)($data['max_choices']??1))):1;
+        $pdo=Database::connection();$pdo->beginTransaction();
+        try{
+            $question=$pdo->prepare('UPDATE questions SET text=:text,question_type=:type,min_choices=1,max_choices=:max_choices WHERE id=:id AND election_id=:election_id');
+            $question->execute(['text'=>$text,'type'=>$type,'max_choices'=>$max,'id'=>$questionId,'election_id'=>$electionId]);
+            if($question->rowCount()===0){$exists=$pdo->prepare('SELECT COUNT(*) FROM questions WHERE id=:id AND election_id=:election_id');$exists->execute(['id'=>$questionId,'election_id'=>$electionId]);if(!(int)$exists->fetchColumn())throw new \RuntimeException('Pregunta no encontrada.');}
+            $pdo->prepare('DELETE FROM options WHERE question_id=:id')->execute(['id'=>$questionId]);
+            $insert=$pdo->prepare('INSERT INTO options(question_id,label,sort_order) VALUES(:question_id,:label,:sort_order)');
+            foreach($options as $index=>$label)$insert->execute(['question_id'=>$questionId,'label'=>$label,'sort_order'=>$index+1]);
+            Audit::log('question.updated','question',$questionId,['election_id'=>$electionId]);
+            $pdo->commit();
+        }catch(\Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     }
 
     public static function deleteQuestion(int $electionId,int $questionId): void

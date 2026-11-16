@@ -20,7 +20,7 @@ final class InvitationMailService
             throw new \RuntimeException('Configura SMTP y APP_URL con HTTPS en el .env privado antes de enviar credenciales.');
         }
         $logoPath=OrganizationService::logoPath((int)($election['organization_id']??0));
-        $logoHtml=$logoPath!==null?'<img src="'.htmlspecialchars($base.$logoPath,ENT_QUOTES,'UTF-8').'" alt="Logo de la organización" width="120" style="display:block;max-width:120px;max-height:70px;object-fit:contain;margin:0 0 14px auto;background:white;padding:5px">':'';
+        $logoHtml='';
         $link=$base.'/vote.php?token='.rawurlencode($invitation['token']);
         $h=static fn(string $v):string=>htmlspecialchars($v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
         $title=(string)$election['title'];
@@ -28,6 +28,14 @@ final class InvitationMailService
         $otp=(string)$invitation['otp'];
         $minutes=(int)ceil((int)$invitation['expires_in_seconds']/60);
         $mail=new PHPMailer(true);
+        if($logoPath!==null){
+            $absoluteLogo=dirname(__DIR__,2).'/public'.$logoPath;
+            if(is_file($absoluteLogo)){
+                $mime=(new \finfo(FILEINFO_MIME_TYPE))->file($absoluteLogo)?:'application/octet-stream';
+                $mail->addEmbeddedImage($absoluteLogo,'organization-logo',basename($absoluteLogo),'base64',$mime);
+                $logoHtml='<img src="cid:organization-logo" alt="Logo de la organización" width="120" style="display:block;max-width:120px;max-height:70px;object-fit:contain;margin:0 0 14px auto;background:white;padding:5px">';
+            }
+        }
         $mail->isSMTP();
         $mail->Host=$host;
         $mail->Port=(int)(getenv('MAIL_PORT')?:587);

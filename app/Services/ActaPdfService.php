@@ -35,9 +35,11 @@ final class ActaPdfDocument
     private array $pages=[];
     private int $page=0;
     private float $cursor=0;
+    private ?array $organizationLogo=null;
 
     public function render(array $election,array $summary,string $sha256): void
     {
+        $this->organizationLogo=$this->loadOrganizationLogo((string)($election['organization_logo_path']??''));
         $total=(int)($summary['participation']['total']??0);
         $voted=(int)($summary['participation']['voted']??0);
         $participation=$total>0?round($voted*100/$total,1):0;
@@ -68,11 +70,18 @@ final class ActaPdfDocument
         $objects[1]='<< /Type /Catalog /Pages 2 0 R >>';
         $objects[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
         $objects[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
-        $kids=[];$objectNumber=5;
+        $logoObject=null;$objectNumber=5;
+        if($this->organizationLogo!==null){
+            $logoObject=$objectNumber++;
+            $image=$this->organizationLogo;
+            $objects[$logoObject]='<< /Type /XObject /Subtype /Image /Width '.$image['width'].' /Height '.$image['height'].' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '.strlen($image['data'])." >>\nstream\n".$image['data']."\nendstream";
+        }
+        $kids=[];
         foreach($this->pages as $content){
             $pageObject=$objectNumber++;$contentObject=$objectNumber++;
             $kids[]=$pageObject.' 0 R';
-            $objects[$pageObject]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.self::PAGE_W.' '.self::PAGE_H.'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '.$contentObject.' 0 R >>';
+            $xObjects=$logoObject!==null?' /XObject << /OrgLogo '.$logoObject.' 0 R >>':'';
+            $objects[$pageObject]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.self::PAGE_W.' '.self::PAGE_H.'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'.$xObjects.' >> /Contents '.$contentObject.' 0 R >>';
             $objects[$contentObject]='<< /Length '.strlen($content).' >>'."\nstream\n".$content."\nendstream";
         }
         $objects[2]='<< /Type /Pages /Kids ['.implode(' ',$kids).'] /Count '.count($kids).' >>';
@@ -112,8 +121,32 @@ final class ActaPdfDocument
         $this->logoMark(48,$compact?21:25,45);
         $this->text(105,$compact?46:52,'QUORUM',21,'B',[1,1,1]);
         $this->text(106,$compact?65:72,'DECISIONES DIGITALES VERIFICABLES',6.8,'B',[0.72,0.83,0.90]);
-        $this->text(475,$compact?48:54,$compact?'ACTA - CONTINUACIÓN':'ACTA OFICIAL',8,'B',[1,1,1]);
+        if($this->organizationLogo!==null){
+            $this->text(374,$compact?26:30,$compact?'CONTINUACIÓN':'ACTA OFICIAL',7,'B',[0.72,0.83,0.90]);
+            $this->rect(449,$compact?12:16,98,$compact?58:64,[1,1,1]);
+            $this->image('OrgLogo',454,$compact?17:21,88,$compact?48:54,$this->organizationLogo['width'],$this->organizationLogo['height']);
+        }else{
+            $this->text(475,$compact?48:54,$compact?'ACTA - CONTINUACIÓN':'ACTA OFICIAL',8,'B',[1,1,1]);
+        }
         $this->rect(0,$compact?84:96,self::PAGE_W,4,self::ORANGE);
+    }
+
+    private function image(string $name,float $x,float $top,float $boxWidth,float $boxHeight,int $sourceWidth,int $sourceHeight): void
+    {
+        $scale=min($boxWidth/$sourceWidth,$boxHeight/$sourceHeight);$width=$sourceWidth*$scale;$height=$sourceHeight*$scale;
+        $left=$x+($boxWidth-$width)/2;$bottom=$this->y($top+($boxHeight+$height)/2);
+        $this->command('q '.number_format($width,2,'.','').' 0 0 '.number_format($height,2,'.','').' '.number_format($left,2,'.','').' '.number_format($bottom,2,'.','').' cm /'.$name.' Do Q');
+    }
+
+    private function loadOrganizationLogo(string $path): ?array
+    {
+        if(!preg_match('~^/uploads/organization-logos/[a-f0-9]{32}\.(png|jpg|webp)$~',$path))return null;
+        $file=dirname(__DIR__,2).'/public'.$path;if(!is_file($file)||!extension_loaded('gd'))return null;
+        $source=@imagecreatefromstring((string)file_get_contents($file));if($source===false)return null;
+        $width=imagesx($source);$height=imagesy($source);if($width<1||$height<1){imagedestroy($source);return null;}
+        $canvas=imagecreatetruecolor($width,$height);$white=imagecolorallocate($canvas,255,255,255);imagefill($canvas,0,0,$white);imagecopy($canvas,$source,0,0,0,0,$width,$height);
+        ob_start();imagejpeg($canvas,null,88);$data=(string)ob_get_clean();imagedestroy($canvas);imagedestroy($source);
+        return $data!==''?['data'=>$data,'width'=>$width,'height'=>$height]:null;
     }
 
     private function logoMark(float $x,float $top,float $size): void

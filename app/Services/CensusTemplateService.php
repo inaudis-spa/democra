@@ -6,12 +6,12 @@ use InaudisVote\Core\Audit;
 use PDO;
 final class CensusTemplateService {
  public static function defaults():array {return [
- ['key'=>'rut','label'=>'RUT','type'=>'text','required'=>false],
- ['key'=>'name','label'=>'Nombre','type'=>'text','required'=>true],
- ['key'=>'email','label'=>'Email','type'=>'email','required'=>true],
- ['key'=>'phone','label'=>'Teléfono','type'=>'text','required'=>false],
- ['key'=>'vote_weight','label'=>'Peso del voto','type'=>'number','required'=>false],
- ['key'=>'segment','label'=>'Segmento','type'=>'text','required'=>false]];}
+ ['key'=>'rut','label'=>'RUT','type'=>'text','required'=>false,'show_on_display'=>false],
+ ['key'=>'name','label'=>'Nombre','type'=>'text','required'=>true,'show_on_display'=>false],
+ ['key'=>'email','label'=>'Email','type'=>'email','required'=>true,'show_on_display'=>false],
+ ['key'=>'phone','label'=>'Teléfono','type'=>'text','required'=>false,'show_on_display'=>false],
+ ['key'=>'vote_weight','label'=>'Peso del voto','type'=>'number','required'=>false,'show_on_display'=>false],
+ ['key'=>'segment','label'=>'Segmento','type'=>'text','required'=>false,'show_on_display'=>false]];}
  public static function organization(int $id):array {
   $q=Database::connection()->prepare('SELECT fields_json FROM organization_census_templates WHERE organization_id=?');$q->execute([$id]);
   $json=$q->fetchColumn();return $json?json_decode($json,true,512,JSON_THROW_ON_ERROR):self::defaults();
@@ -39,7 +39,8 @@ final class CensusTemplateService {
   foreach($fields as $f){
    $key=(string)($f['key']??'');$label=trim((string)($f['label']??''));$type=(string)($f['type']??'text');
    if(!preg_match('/^[a-z][a-z0-9_]{0,39}$/',$key)||isset($seen[$key])||$label===''||mb_strlen($label)>80||!in_array($type,['text','number','date','email'],true))throw new \InvalidArgumentException('Campo inválido o duplicado.');
-   $seen[$key]=true;$clean[]=['key'=>$key,'label'=>$label,'type'=>in_array($key,['name','email'],true)?($key==='email'?'email':'text'):$type,'required'=>in_array($key,['name','email'],true)||!empty($f['required'])];
+   $publicAllowed=$type==='text'&&!in_array($key,['rut','name','email','phone','vote_weight'],true);
+   $seen[$key]=true;$clean[]=['key'=>$key,'label'=>$label,'type'=>in_array($key,['name','email'],true)?($key==='email'?'email':'text'):$type,'required'=>in_array($key,['name','email'],true)||!empty($f['required']),'show_on_display'=>$publicAllowed&&!empty($f['show_on_display'])];
   }
   if(!isset($seen['name'],$seen['email']))throw new \InvalidArgumentException('Nombre y Email son obligatorios.');
   $table=$scope==='organization'?'organization_census_templates':'election_census_templates';$column=$scope==='organization'?'organization_id':'election_id';

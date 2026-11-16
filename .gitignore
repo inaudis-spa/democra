@@ -8,6 +8,7 @@
 /.runtime/
 /tmp/
 /output/
+/public/uploads/
 *.log
 .DS_Store
 Thumbs.db
