@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);require dirname(__DIR__).'/config/bootstrap.php';
 use InaudisVote\Core\Authorization;use InaudisVote\Core\Csrf;use InaudisVote\Core\Navigation;use InaudisVote\Services\ElectionService;use InaudisVote\Services\LiveControlService;use InaudisVote\Services\ResultService;use InaudisVote\Services\WitnessService;
-$user=Authorization::requireRoles(['admin','organizer','witness']);$id=(int)($_GET['election_id']??0);$election=ElectionService::find($id);
+$user=Authorization::requireRoles(['admin','witness']);$id=(int)($_GET['election_id']??0);$election=ElectionService::find($id);
 if(!$election||!Authorization::canReviewElection($user,$id,(int)$election['organization_id'])){http_response_code(403);exit('No autorizado.');}
 $error=null;$message=null;
 if($_SERVER['REQUEST_METHOD']==='POST'){
