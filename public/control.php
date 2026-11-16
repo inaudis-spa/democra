@@ -13,9 +13,29 @@ use InaudisVote\Services\LiveControlService;
 $user = Authorization::requireRoles(['admin', 'organizer']);
 $id = (int) ($_GET['election_id'] ?? 0);
 $election = ElectionService::find($id);
-if (!$election || !Authorization::canManageElection($user, (int) $election['organization_id'], $id)) {
+if (!$election || !Authorization::canReviewElection($user, $id, (int) $election['organization_id'])) {
     http_response_code(404);
     exit('Votación no encontrada.');
+}
+
+$isAdmin = $user['role'] === 'admin';
+if (!$isAdmin) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        http_response_code(403);
+        exit('Solo el administrador puede modificar votaciones.');
+    }
+    $snapshot = LiveControlService::snapshot($id);
+    $statusLabels = ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'];
+    ?>
+    <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta de votación | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head>
+    <body class="vota-ui"><div class="v-shell"><?php Navigation::sidebar($user, 'elections', $id, $election['title']); ?>
+    <div class="v-main"><header class="v-topbar"><a class="v-link" href="/elections.php">← Mis votaciones</a></header><main class="v-content">
+    <div class="v-headrow"><div><div class="v-kicker">Consulta de proceso</div><h1 class="v-title"><?=htmlspecialchars($election['title'])?></h1><p class="v-subtitle">Información y participación de la votación asignada.</p></div><span class="v-status"><?=htmlspecialchars($statusLabels[$election['status']]??$election['status'])?></span></div>
+    <section class="v-stats"><div class="v-card v-stat"><strong><?=$snapshot['eligible']?></strong><span>Habilitados</span></div><div class="v-card v-stat teal"><strong><?=$snapshot['voted']?></strong><span>Votos recibidos</span></div><div class="v-card v-stat orange"><strong><?=$snapshot['participation']?>%</strong><span>Participación</span></div></section>
+    <section class="v-card v-pad"><h2>Información</h2><p><?=htmlspecialchars((string)$election['description'])?></p><p>Inicio: <?=htmlspecialchars((string)$election['starts_at'])?> · Término: <?=htmlspecialchars((string)$election['ends_at'])?></p><a class="v-btn v-btn-primary" href="/results.php?election_id=<?=$id?>">Consultar resultados →</a></section>
+    </main></div></div></body></html>
+    <?php
+    exit;
 }
 
 $error = null;
