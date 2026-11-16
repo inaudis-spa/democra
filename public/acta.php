@@ -9,7 +9,7 @@ use InaudisVote\Services\ElectionService;
 use InaudisVote\Services\ResultService;
 use InaudisVote\Services\ActaPdfService;
 
-$user=Authorization::requireRoles(['admin','organizer']);
+$user=Authorization::requireRoles(['admin']);
 if($_SERVER['REQUEST_METHOD']!=='POST'||!Csrf::validate($_POST['_csrf']??null)){http_response_code(405);header('Allow: POST');exit('El acta debe generarse desde la acción confirmada del sistema.');}
 $electionId=(int)($_GET['election_id']??0);
 $election=ElectionService::find($electionId);
