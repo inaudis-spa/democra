@@ -7,50 +7,118 @@ use PDO;
 use PDOException;
 final class CensusService
 {
-    public static function list(int $electionId): array{$stmt=Database::connection()->prepare('SELECT * FROM census_members WHERE election_id=:id ORDER BY name');$stmt->execute(['id'=>$electionId]);return $stmt->fetchAll(PDO::FETCH_ASSOC);}
-    private static function requireEditable(int $electionId): void{$stmt=Database::connection()->prepare('SELECT status,census_locked_at FROM elections WHERE id=:id');$stmt->execute(['id'=>$electionId]);$e=$stmt->fetch(PDO::FETCH_ASSOC);if(!$e||!in_array($e['status'],['draft','scheduled'],true)||!empty($e['census_locked_at']))throw new \RuntimeException('El padrón está bloqueado y ya no admite cambios.');}
-    public static function add(int $electionId,array $data): int
+    public static function list(int $electionId): array
     {
-        self::requireEditable($electionId);$name=trim((string)($data['name']??''));$email=mb_strtolower(trim((string)($data['email']??'')));$rawWeight=$data['vote_weight']??1;
-        if($name==='')throw new \InvalidArgumentException('El nombre del votante es obligatorio.');
-        if(mb_strlen($name)>150)throw new \InvalidArgumentException('El nombre del votante es demasiado largo.');
-        if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Ingresa un correo electrónico válido para el votante.');
-        if(!is_numeric($rawWeight)||(float)$rawWeight<=0)throw new \InvalidArgumentException('El peso del voto debe ser un número mayor que cero.');
-        $stmt=Database::connection()->prepare('INSERT INTO census_members (election_id,rut,name,email,phone,vote_weight,segment,status) VALUES (:election_id,:rut,:name,:email,:phone,:weight,:segment,"eligible")');
-        try{$stmt->execute(['election_id'=>$electionId,'rut'=>trim((string)($data['rut']??''))?:null,'name'=>$name,'email'=>$email,'phone'=>trim((string)($data['phone']??''))?:null,'weight'=>(float)$rawWeight,'segment'=>trim((string)($data['segment']??''))?:null]);}
-        catch(PDOException $e){if((string)$e->getCode()==='23000')throw new \InvalidArgumentException('Este correo ya está registrado en el padrón de la votación.');throw $e;}
-        $id=(int)Database::connection()->lastInsertId();Audit::log('census.member_added','census_member',$id,['election_id'=>$electionId,'email'=>$email]);return $id;
+        $q=Database::connection()->prepare('SELECT cm.*,cv.values_json FROM census_members cm LEFT JOIN census_custom_values cv ON cv.census_member_id=cm.id WHERE cm.election_id=? ORDER BY cm.name');
+        $q->execute([$electionId]);$members=$q->fetchAll(PDO::FETCH_ASSOC);
+        foreach($members as &$member){$member['custom_values']=$member['values_json']?json_decode($member['values_json'],true,512,JSON_THROW_ON_ERROR):[];unset($member['values_json']);}
+        return $members;
     }
-    public static function importCsv(int $electionId,string $csvContent):array
+    private static function requireEditable(int $electionId): void
+    {
+        $q=Database::connection()->prepare('SELECT status,census_locked_at FROM elections WHERE id=?');$q->execute([$electionId]);$e=$q->fetch(PDO::FETCH_ASSOC);
+        if(!$e||!in_array($e['status'],['draft','scheduled'],true)||!empty($e['census_locked_at']))throw new \RuntimeException('El padrón está bloqueado y ya no admite cambios.');
+    }
+    public static function validateFields(array $data,array $fields): void
+    {
+        foreach($fields as $field){
+            $key=$field['key'];$value=trim((string)($data[$key]??''));
+            if($field['required']&&$value==='')throw new \InvalidArgumentException('Falta campo obligatorio: '.$field['label']);
+            if($value!==''&&$field['type']==='email'&&!filter_var($value,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Email inválido: '.$field['label']);
+            if($value!==''&&$field['type']==='number'&&!is_numeric($value))throw new \InvalidArgumentException('Número inválido: '.$field['label']);
+            if($value!==''&&$field['type']==='date'){
+                $d=\DateTimeImmutable::createFromFormat('!Y-m-d',$value);
+                if(!$d||$d->format('Y-m-d')!==$value)throw new \InvalidArgumentException('Fecha inválida (AAAA-MM-DD): '.$field['label']);
+            }
+        }
+        $rut=trim((string)($data['rut']??''));
+        if($rut!==''&&self::normalizeRut($rut)===null)throw new \InvalidArgumentException('RUT inválido.');
+        $weight=($data['vote_weight']??'')===''?1:$data['vote_weight'];
+        if(!is_numeric($weight)||(float)$weight<=0)throw new \InvalidArgumentException('El peso del voto debe ser mayor que cero.');
+    }
+    private static function normalizeRut(string $rut): ?string
+    {
+        $value=strtoupper(preg_replace('/[\.\s-]/','',$rut)??'');
+        if(!preg_match('/^([0-9]{1,8})([0-9K])$/',$value,$m))return null;
+        $sum=0;$factor=2;
+        foreach(array_reverse(str_split($m[1])) as $digit){$sum+=(int)$digit*$factor;$factor=$factor===7?2:$factor+1;}
+        $dv=11-($sum%11);$expected=$dv===11?'0':($dv===10?'K':(string)$dv);
+        return $expected===$m[2]?ltrim($m[1],'0').'-'.$m[2]:null;
+    }
+    public static function add(int $electionId,array $data): int
     {
         self::requireEditable($electionId);
         $fields=CensusTemplateService::election($electionId);
-        $rows=CensusTemplateService::parse($csvContent,$fields);
-        $created=0;$errors=[];
-        $standard=['rut','name','email','phone','vote_weight','segment'];
-        foreach($rows as $row){
-            $line=$row['line'];$data=$row['data'];
-            if($data===null){$errors[]='Fila '.$line.': cantidad de columnas incorrecta.';continue;}
-            try {
-                foreach($fields as $field){
-                    $key=$field['key'];$value=trim((string)($data[$key]??''));
-                    if($field['required']&&$value==='')throw new \InvalidArgumentException('Falta campo obligatorio: '.$field['label']);
-                    if($value!==''&&$field['type']==='email'&&!filter_var($value,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Email inválido: '.$field['label']);
-                    if($value!==''&&$field['type']==='number'&&!is_numeric($value))throw new \InvalidArgumentException('Número inválido: '.$field['label']);
-                    if($value!==''&&$field['type']==='date'&&!\DateTimeImmutable::createFromFormat('!Y-m-d',$value))throw new \InvalidArgumentException('Fecha inválida (AAAA-MM-DD): '.$field['label']);
-                }
-                $base=array_intersect_key($data,array_flip($standard));
-                $id=self::add($electionId,$base);
-                $custom=array_diff_key($data,array_flip($standard));
-                if($custom){
-                    $q=Database::connection()->prepare('INSERT INTO census_custom_values(census_member_id,values_json) VALUES (?,?)');
-                    $q->execute([$id,json_encode($custom,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
-                }
-                $created++;
-            }catch(\Throwable $e){$errors[]='Fila '.$line.': '.user_error_message($e);}
+        self::validateFields($data,$fields);
+        $name=trim((string)($data['name']??''));$email=mb_strtolower(trim((string)($data['email']??'')));
+        if($name===''||mb_strlen($name)>150)throw new \InvalidArgumentException('Nombre inválido.');
+        if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Email inválido.');
+        $rut=trim((string)($data['rut']??''));$normalized=$rut!==''?self::normalizeRut($rut):null;
+        $pdo=Database::connection();$ownTransaction=!$pdo->inTransaction();
+        if($ownTransaction)$pdo->beginTransaction();
+        try {
+            if($normalized!==null){
+                $q=$pdo->prepare('SELECT rut FROM census_members WHERE election_id=? AND rut IS NOT NULL FOR UPDATE');$q->execute([$electionId]);
+                foreach($q->fetchAll(PDO::FETCH_COLUMN) as $existing)if(self::normalizeRut((string)$existing)===$normalized)throw new \InvalidArgumentException('Este RUT ya está registrado en el padrón.');
+            }
+            $q=$pdo->prepare('INSERT INTO census_members (election_id,rut,name,email,phone,vote_weight,segment,status) VALUES (:eid,:rut,:name,:email,:phone,:weight,:segment,"eligible")');
+            $q->execute(['eid'=>$electionId,'rut'=>$normalized,'name'=>$name,'email'=>$email,'phone'=>trim((string)($data['phone']??''))?:null,'weight'=>($data['vote_weight']??'')===''?1:(float)$data['vote_weight'],'segment'=>trim((string)($data['segment']??''))?:null]);
+            $id=(int)$pdo->lastInsertId();$standard=array_flip(['rut','name','email','phone','vote_weight','segment']);
+            $custom=array_diff_key($data,$standard);
+            $custom=array_intersect_key($custom,array_flip(array_column($fields,'key')));
+            if($custom){$q=$pdo->prepare('INSERT INTO census_custom_values(census_member_id,values_json) VALUES (?,?)');$q->execute([$id,json_encode($custom,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);}
+            Audit::log('census.member_added','census_member',$id,['election_id'=>$electionId,'email'=>$email]);
+            if($ownTransaction)$pdo->commit();
+            return $id;
+        }catch(\Throwable $e){
+            if($ownTransaction&&$pdo->inTransaction())$pdo->rollBack();
+            if($e instanceof PDOException&&(string)$e->getCode()==='23000')throw new \InvalidArgumentException('Correo o identificador duplicado en el padrón.');
+            throw $e;
         }
-        Audit::log('census.csv_imported','election',$electionId,['created'=>$created,'errors'=>count($errors)]);
-        return ['created'=>$created,'errors'=>$errors];
+    }
+    public static function previewCsv(int $electionId,string $csv): array
+    {
+        $fields=CensusTemplateService::election($electionId);$rows=CensusTemplateService::parse($csv,$fields);
+        $errors=[];$valid=0;$seenEmails=[];$seenRuts=[];
+        $q=Database::connection()->prepare('SELECT email,rut FROM census_members WHERE election_id=?');$q->execute([$electionId]);
+        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $member){
+            $seenEmails[mb_strtolower(trim($member['email']))]=true;
+            if($member['rut']&&($r=self::normalizeRut($member['rut'])))$seenRuts[$r]=true;
+        }
+        foreach($rows as $row){
+            try {
+                if($row['data']===null)throw new \InvalidArgumentException('Cantidad de columnas incorrecta.');
+                $data=$row['data'];self::validateFields($data,$fields);
+                $email=mb_strtolower(trim((string)($data['email']??'')));
+                if(isset($seenEmails[$email]))throw new \InvalidArgumentException('Email duplicado.');
+                $seenEmails[$email]=true;
+                $rut=trim((string)($data['rut']??''));
+                if($rut!==''){
+                    $normalized=self::normalizeRut($rut);
+                    if(isset($seenRuts[$normalized]))throw new \InvalidArgumentException('RUT duplicado.');
+                    $seenRuts[$normalized]=true;
+                }
+                $valid++;
+            }catch(\Throwable $e){$errors[]='Fila '.$row['line'].': '.$e->getMessage();}
+        }
+        return ['valid'=>$valid,'errors'=>$errors,'total'=>count($rows)];
+    }
+    public static function importCsv(int $electionId,string $csv): array
+    {
+        self::requireEditable($electionId);
+        $preview=self::previewCsv($electionId,$csv);
+        if($preview['errors'])return ['created'=>0,'errors'=>$preview['errors']];
+        $rows=CensusTemplateService::parse($csv,CensusTemplateService::election($electionId));
+        $pdo=Database::connection();$pdo->beginTransaction();
+        try{
+            foreach($rows as $row)self::add($electionId,$row['data']);
+            Audit::log('census.csv_imported','election',$electionId,['created'=>count($rows),'errors'=>0]);
+            $pdo->commit();
+            return ['created'=>count($rows),'errors'=>[]];
+        }catch(\Throwable $e){
+            if($pdo->inTransaction())$pdo->rollBack();
+            return ['created'=>0,'errors'=>['Importación cancelada: '.$e->getMessage()]];
+        }
     }
     public static function generateInvitation(int $electionId,int $memberId): array
     {
