@@ -14,7 +14,7 @@ header('Cache-Control: no-store, private');
 $user = Authorization::requireRoles(['admin', 'organizer']);
 $id = (int) ($_GET['election_id'] ?? 0);
 $election = ElectionService::find($id);
-if (!$election || !Authorization::canManageElection($user, (int) $election['organization_id'], $id)) {
+if (!$election || !Authorization::canReviewElection($user, $id, (int) $election['organization_id'])) {
     http_response_code(404);
     echo json_encode(['error' => 'Votación no encontrada.']);
     exit;
@@ -40,5 +40,5 @@ echo json_encode([
     'current_question_id' => $snapshot['current_question_id'],
     'display_results' => $showResults,
     'results' => $showResults ? ResultService::summary($id) : null,
-    'activity' => LiveControlService::recentActivity($id, 6),
+    'activity' => $user['role']==='admin' ? LiveControlService::recentActivity($id, 6) : [],
 ], JSON_UNESCAPED_UNICODE);
