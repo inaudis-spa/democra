@@ -37,8 +37,8 @@ if($scope==='election'){$members=\InaudisVote\Services\CensusService::list($id);
 <?php foreach($fields as $i=>$f):?><div class="v-grid-2" style="grid-template-columns:1fr 2fr 1fr auto;align-items:center;margin-bottom:12px">
 <input class="v-field" name="key[<?=$i?>]" value="<?=htmlspecialchars($f['key'],ENT_QUOTES)?>" <?=in_array($f['key'],['name','email'],true)?'readonly':''?> required maxlength="40" pattern="[a-z][a-z0-9_]*" title="Identificador sin espacios">
 <input class="v-field" name="label[<?=$i?>]" value="<?=htmlspecialchars($f['label'],ENT_QUOTES)?>" required maxlength="80" <?=$editable?'':'readonly'?>>
-<select class="v-field" name="type[<?=$i?>]" <?=$editable&&!in_array($f['key'],['name','email'],true)?'':'disabled'?>><?php foreach(['text'=>'Texto','number'=>'Número','date'=>'Fecha','email'=>'Email'] as $value=>$label):?><option value="<?=$value?>" <?=$f['type']===$value?'selected':''?>><?=$label?></option><?php endforeach;?></select>
-<label><input type="checkbox" name="required[<?=$i?>]" <?=!empty($f['required'])?'checked':''?> <?=$editable&&!in_array($f['key'],['name','email'],true)?'':'disabled'?>> Obligatorio</label>
+<select class="v-field" name="type[<?=$i?>]" <?=$editable&&!in_array($f['key'],['name','email'],true)?'':'style="pointer-events:none"'?>><?php foreach(['text'=>'Texto','number'=>'Número','date'=>'Fecha','email'=>'Email'] as $value=>$label):?><option value="<?=$value?>" <?=$f['type']===$value?'selected':''?>><?=$label?></option><?php endforeach;?></select>
+<label><input type="checkbox" name="required[<?=$i?>]" <?=!empty($f['required'])?'checked':''?> <?=$editable&&!in_array($f['key'],['name','email'],true)?'':'onclick="return false"'?>> Obligatorio</label>
 </div><?php endforeach;?></div>
 <?php if($editable):?><button type="button" class="v-btn v-btn-outline" id="add-field">＋ Agregar campo</button><button class="v-btn v-btn-orange">Guardar campos</button><?php else:?><p class="v-alert v-alert-warn">Configuración de solo lectura.</p><?php endif;?></form></section></main></div></div>
 <?php if($editable):?><script>
