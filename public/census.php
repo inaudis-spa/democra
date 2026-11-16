@@ -23,6 +23,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
             if(trim($csv)==='')throw new RuntimeException('Selecciona un CSV o pega su contenido.');$result=CensusService::importCsv($electionId,$csv);$message='Importados: '.$result['created'].'. Errores: '.count($result['errors']);if($result['errors'])$error=implode(' | ',array_slice($result['errors'],0,3));
          }elseif($action==='invite'){
             if (!is_file(dirname(__DIR__).'/vendor/autoload.php') || !getenv('MAIL_PASSWORD') || !getenv('MAIL_HOST') || !getenv('MAIL_USER') || !filter_var((string)getenv('APP_URL'),FILTER_VALIDATE_URL) || !str_starts_with((string)getenv('APP_URL'),'https://')) throw new RuntimeException('Configura PHPMailer, SMTP y APP_URL HTTPS antes de generar credenciales.');
+            require_once dirname(__DIR__).'/vendor/autoload.php';
+            if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) throw new RuntimeException('PHPMailer no está instalado correctamente.');
             $inv=CensusService::generateInvitation($electionId,(int)($_POST['member_id']??0));
             InvitationMailService::send($election,$inv);
             $message='Credenciales enviadas por Email a '.$inv['email'].'.';
