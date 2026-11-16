@@ -81,3 +81,6 @@ jobs:
 
       - name: Run sequential voting regression
         run: php tests/sequential_regression.php
+
+      - name: Run census template regression
+        run: php tests/census_template_regression.php
