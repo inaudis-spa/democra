@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);require dirname(__DIR__).'/config/bootstrap.php';
 use InaudisVote\Core\Authorization;use InaudisVote\Core\Csrf;use InaudisVote\Core\Navigation;use InaudisVote\Services\ElectionService;
-$user=Authorization::requireRoles(['admin','organizer']);$id=(int)($_GET['id']??0);$election=ElectionService::find($id);
+$user=Authorization::requireRoles(['admin']);$id=(int)($_GET['id']??0);$election=ElectionService::find($id);
 if(!$election||!Authorization::canManageElection($user,(int)$election['organization_id'],$id)){http_response_code(404);exit('Votación no encontrada.');}
 $error=null;
 if($_SERVER['REQUEST_METHOD']==='POST'){
