@@ -51,6 +51,8 @@ final class ElectionService
         if($start&&$end&&$end<=$start) throw new \InvalidArgumentException('La fecha de término debe ser posterior a la fecha de inicio.');
         $flow = ($data['question_flow'] ?? 'traditional') === 'sequential' ? 'sequential' : 'traditional';
         $mode = in_array(($data['voting_mode'] ?? 'secret'), ['secret','public'], true) ? $data['voting_mode'] : 'secret';
+        $pdo->beginTransaction();
+        try {
         $stmt = $pdo->prepare('INSERT INTO elections (organization_id,title,description,voting_mode,question_flow,status,starts_at,ends_at,allow_weighted_vote,created_by) VALUES (:organization_id,:title,:description,:voting_mode,:question_flow,:status,:starts_at,:ends_at,:weighted,:created_by)');
         $stmt->execute(['organization_id'=>$organizationId,'title'=>$title,'description'=>trim((string)($data['description']??''))?:null,'voting_mode'=>$mode,'question_flow'=>$flow,'status'=>'draft','starts_at'=>$start?->format('Y-m-d H:i:s'),'ends_at'=>$end?->format('Y-m-d H:i:s'),'weighted'=>!empty($data['allow_weighted_vote'])?1:0,'created_by'=>$createdBy]);
         $id=(int)$pdo->lastInsertId();
@@ -61,6 +63,8 @@ final class ElectionService
         }
         CensusTemplateService::copy($id,$organizationId);
         Audit::log('election.created','election',$id,['title'=>$title,'mode'=>$mode]);
+        $pdo->commit();
+        } catch (\Throwable $e) { if($pdo->inTransaction())$pdo->rollBack();throw $e; }
         return $id;
     }
 
