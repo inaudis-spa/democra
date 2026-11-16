@@ -45,6 +45,7 @@ final class Navigation
             $title = htmlspecialchars((string) ($electionTitle ?: 'Proceso seleccionado'), ENT_QUOTES, 'UTF-8');
             echo '<div class="v-nav-context"><div class="v-nav-label">Votación actual</div>';
             echo '<div class="v-nav-election" title="'.$title.'"><span>Proceso</span><strong>'.$title.'</strong></div>';
+            if ($role === 'organizer') echo $item('overview', '/control.php?election_id='.$id, '&#9679;', 'Resumen');
             if ($role === 'admin') {
                 echo $item('control', '/control.php?election_id='.$id, '&#9679;', 'Centro de control');
                 echo $item('configuration', '/election.php?id='.$id, '&#9881;', 'Configuración');
