@@ -59,6 +59,7 @@ final class ElectionService
             $assign=$pdo->prepare('INSERT INTO election_managers(election_id,user_id,assigned_by) VALUES(:eid,:uid,:by)');
             $assign->execute(['eid'=>$id,'uid'=>$createdBy,'by'=>$createdBy]);
         }
+        CensusTemplateService::copy($id,$organizationId);
         Audit::log('election.created','election',$id,['title'=>$title,'mode'=>$mode]);
         return $id;
     }
