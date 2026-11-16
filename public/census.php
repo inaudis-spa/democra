@@ -8,7 +8,7 @@ use InaudisVote\Core\Navigation;
 use InaudisVote\Services\CensusService;
 use InaudisVote\Services\ElectionService;
 
-$user=Authorization::requireRoles(['admin','organizer']);$electionId=(int)($_GET['election_id']??0);$election=ElectionService::find($electionId);
+$user=Authorization::requireRoles(['admin']);$electionId=(int)($_GET['election_id']??0);$election=ElectionService::find($electionId);
 if(!$election||!Authorization::canManageElection($user,(int)$election['organization_id'],$electionId)){http_response_code(404);exit('Votación no encontrada.');}
 $editable=in_array($election['status'],['draft','scheduled'],true)&&empty($election['census_locked_at']);
 $error=null;$message=null;$inviteUrl=null;$otp=null;
