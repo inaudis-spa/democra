@@ -21,6 +21,7 @@ try {
     $organizationId=OrganizationService::create(['name'=>'Secuencial '.$suffix,'slug'=>'sequential-'.$suffix]);
     $userId=UserService::create(['name'=>'Organizador','email'=>'seq-'.$suffix.'@inaudis.local','password'=>'Prueba2026!','role'=>'organizer','organization_id'=>$organizationId]);
     $electionId=ElectionService::create(['organization_id'=>$organizationId,'title'=>'Asamblea '.$suffix,'question_flow'=>'sequential'],$userId);
+    checkSequential(ElectionService::find($electionId)['question_flow']==='sequential','Modalidad secuencial persistida');
     $q1=ElectionService::addQuestion($electionId,['text'=>'Pregunta 1','options'=>"Sí\nNo"]);
     $q2=ElectionService::addQuestion($electionId,['text'=>'Pregunta 2','options'=>"Sí\nNo"]);
     $option1=(int)$pdo->query('SELECT id FROM options WHERE question_id='.$q1.' ORDER BY id LIMIT 1')->fetchColumn();
