@@ -17,10 +17,11 @@ final class VotingService
             'SELECT vt.id token_id, vt.election_id, vt.census_member_id, vt.otp_hash, vt.otp_expires_at, vt.verified_at, vt.consumed_at,
                     cm.name voter_name, cm.vote_weight, cm.has_voted, cm.status member_status,
                     vt.otp_attempts, vt.otp_locked_at,
-                    e.title election_title, e.description, e.voting_mode, e.question_flow, e.status election_status, e.starts_at, e.ends_at
+                    e.title election_title, o.logo_path organization_logo_path, e.description, e.voting_mode, e.question_flow, e.status election_status, e.starts_at, e.ends_at
              FROM voter_tokens vt
              JOIN census_members cm ON cm.id=vt.census_member_id
              JOIN elections e ON e.id=vt.election_id
+             JOIN organizations o ON o.id=e.organization_id
              WHERE vt.token_hash=:hash LIMIT 1'
         );
         $stmt->execute(['hash'=>$hash]);
