@@ -42,6 +42,9 @@ jobs:
           php-version: '8.3'
           extensions: pdo_mysql, mbstring
 
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist
+
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
