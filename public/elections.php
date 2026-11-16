@@ -10,14 +10,13 @@ use InaudisVote\Services\OrganizationService;
 
 $user=Authorization::requireRoles(['admin','organizer','witness']);
 $error=null;
-$canCreate=in_array($user['role'],['admin','organizer'],true);
+$canCreate=$user['role']==='admin';
 $organizations=$user['role']==='admin'?OrganizationService::all():[];
 
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!$canCreate){http_response_code(403);exit('Acceso no autorizado.');}
     if(!Csrf::validate($_POST['_csrf']??null)){$error='Solicitud inválida.';}
     else try{
-        if($user['role']==='organizer')$_POST['organization_id']=$user['organization_id'];
         $id=ElectionService::create($_POST,(int)$user['id']);
         header('Location: /election.php?id='.$id);exit;
     }catch(Throwable $exception){$error=$exception->getMessage();}
@@ -32,8 +31,8 @@ function electionStatusLabel(string $status):string{return ['draft'=>'Borrador',
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votaciones | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css?v=d79dcf91"><script src="/assets/elections.js?v=4f8b672c" defer></script></head>
 <body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, 'elections'); ?>
-<div class="v-main"><header class="v-topbar"><span class="v-muted"><?=$user['role']==='witness'?'Procesos asignados':'Gestión electoral'?></span><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
-<div class="v-headrow"><div><div class="v-kicker"><?=$user['role']==='witness'?'Fiscalización':'Gestión electoral'?></div><h1 class="v-title"><?=$user['role']==='witness'?'Mis procesos asignados':'Votaciones'?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$user['role']==='witness'?'Accede únicamente a las votaciones donde debes fiscalizar y certificar hitos.':'Crea, prepara y opera cada proceso desde un centro de control.'?></p></div><?php if($canCreate):?><button class="v-btn v-btn-orange" type="button" onclick="const panel=document.getElementById('nueva-votacion');panel.open=true;panel.scrollIntoView({behavior:'smooth'});">＋ Nueva votación</button><?php endif;?></div>
+<div class="v-main"><header class="v-topbar"><span class="v-muted"><?=$user['role']==='admin'?'Gestión electoral':'Procesos asignados'?></span><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
+<div class="v-headrow"><div><div class="v-kicker"><?=$user['role']==='admin'?'Gestión electoral':($user['role']==='witness'?'Fiscalización':'Consulta de votaciones')?></div><h1 class="v-title"><?=$user['role']==='admin'?'Votaciones':'Mis procesos asignados'?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$user['role']==='witness'?'Accede únicamente a las votaciones donde debes fiscalizar y certificar hitos.':($user['role']==='admin'?'Crea, prepara y opera cada proceso desde un centro de control.':'Consulta el estado, la participación y los resultados de tus votaciones asignadas.')?></p></div><?php if($canCreate):?><button class="v-btn v-btn-orange" type="button" onclick="const panel=document.getElementById('nueva-votacion');panel.open=true;panel.scrollIntoView({behavior:'smooth'});">＋ Nueva votación</button><?php endif;?></div>
 <?php if($error):?><div class="v-alert v-alert-error"><?=htmlspecialchars($error)?></div><?php endif;?>
 
 <?php if($canCreate):?><details class="v-disclosure" id="nueva-votacion"><summary>Crear una nueva votación</summary><div><form method="post" class="v-stack"><?=Csrf::input()?><?php if($user['role']==='admin'):?><label class="v-label">Cliente<select name="organization_id" required class="v-field"><option value="">Selecciona una organización</option><?php foreach($organizations as $organization):?><option value="<?=$organization['id']?>"><?=htmlspecialchars($organization['name'])?></option><?php endforeach;?></select></label><?php endif;?><label class="v-label">Título<input class="v-field" name="title" required placeholder="Ej. Elección de Directorio 2027"></label><label class="v-label">Descripción<textarea class="v-field" name="description" rows="3" placeholder="Objetivo y contexto del proceso"></textarea></label><div class="v-grid-2" style="grid-template-columns:1fr 1fr"><label class="v-label">Inicio<input class="v-field" type="datetime-local" name="starts_at"></label><label class="v-label">Término<input class="v-field" type="datetime-local" name="ends_at"></label></div><label class="v-label">Modalidad<select class="v-field" name="voting_mode"><option value="secret">Voto secreto</option><option value="public">Voto público</option></select></label><label class="v-check"><input type="checkbox" name="allow_weighted_vote" value="1"> Permitir voto ponderado</label><div><button class="v-btn v-btn-orange">Crear y configurar →</button></div></form></div></details><?php endif;?>
