@@ -107,11 +107,14 @@ final class ElectionService
         $options=array_values(array_filter(array_map('trim',preg_split('/\r\n|\r|\n/',(string)($data['options']??''))?:[])));
         if($text===''||count($options)<2) throw new \InvalidArgumentException('La pregunta requiere texto y al menos dos alternativas.');
         $type=($data['question_type']??'single')==='multiple'?'multiple':'single';
-        $max=$type==='multiple'?max(1,min(count($options),(int)($data['max_choices']??1))):1;
+        $min=$type==='multiple'?max(1,(int)($data['min_choices']??1)):1;
+        $max=$type==='multiple'?max($min,min(count($options),(int)($data['max_choices']??$min))):1;
+        if($type==='multiple' && $min>$max) throw new \InvalidArgumentException('El mínimo de respuestas no puede superar el máximo.');
+        if($type==='multiple' && $max>count($options)) throw new \InvalidArgumentException('El máximo de respuestas no puede superar la cantidad de alternativas.');
         $pdo->beginTransaction();
         try {
-            $stmt=$pdo->prepare('INSERT INTO questions (election_id,text,question_type,min_choices,max_choices,sort_order) VALUES (:election_id,:text,:type,1,:max_choices,(SELECT COALESCE(MAX(q.sort_order),0)+1 FROM questions q WHERE q.election_id=:sort_election))');
-            $stmt->execute(['election_id'=>$electionId,'text'=>$text,'type'=>$type,'max_choices'=>$max,'sort_election'=>$electionId]);
+            $stmt=$pdo->prepare('INSERT INTO questions (election_id,text,question_type,min_choices,max_choices,sort_order) VALUES (:election_id,:text,:type,:min_choices,:max_choices,(SELECT COALESCE(MAX(q.sort_order),0)+1 FROM questions q WHERE q.election_id=:sort_election))');
+            $stmt->execute(['election_id'=>$electionId,'text'=>$text,'type'=>$type,'min_choices'=>$min,'max_choices'=>$max,'sort_election'=>$electionId]);
             $questionId=(int)$pdo->lastInsertId();
             $optionStmt=$pdo->prepare('INSERT INTO options (question_id,label,sort_order) VALUES (:question_id,:label,:sort_order)');
             foreach($options as $i=>$label) $optionStmt->execute(['question_id'=>$questionId,'label'=>$label,'sort_order'=>$i+1]);
@@ -128,11 +131,14 @@ final class ElectionService
         $options=array_values(array_filter(array_map('trim',preg_split('/\r\n|\r|\n/',(string)($data['options']??''))?:[])));
         if($text===''||count($options)<2) throw new \InvalidArgumentException('La pregunta requiere texto y al menos dos alternativas.');
         $type=($data['question_type']??'single')==='multiple'?'multiple':'single';
-        $max=$type==='multiple'?max(1,min(count($options),(int)($data['max_choices']??1))):1;
+        $min=$type==='multiple'?max(1,(int)($data['min_choices']??1)):1;
+        $max=$type==='multiple'?max($min,min(count($options),(int)($data['max_choices']??$min))):1;
+        if($type==='multiple' && $min>$max) throw new \InvalidArgumentException('El mínimo de respuestas no puede superar el máximo.');
+        if($type==='multiple' && $max>count($options)) throw new \InvalidArgumentException('El máximo de respuestas no puede superar la cantidad de alternativas.');
         $pdo=Database::connection();$pdo->beginTransaction();
         try{
-            $question=$pdo->prepare('UPDATE questions SET text=:text,question_type=:type,min_choices=1,max_choices=:max_choices WHERE id=:id AND election_id=:election_id');
-            $question->execute(['text'=>$text,'type'=>$type,'max_choices'=>$max,'id'=>$questionId,'election_id'=>$electionId]);
+            $question=$pdo->prepare('UPDATE questions SET text=:text,question_type=:type,min_choices=:min_choices,max_choices=:max_choices WHERE id=:id AND election_id=:election_id');
+            $question->execute(['text'=>$text,'type'=>$type,'min_choices'=>$min,'max_choices'=>$max,'id'=>$questionId,'election_id'=>$electionId]);
             if($question->rowCount()===0){$exists=$pdo->prepare('SELECT COUNT(*) FROM questions WHERE id=:id AND election_id=:election_id');$exists->execute(['id'=>$questionId,'election_id'=>$electionId]);if(!(int)$exists->fetchColumn())throw new \RuntimeException('Pregunta no encontrada.');}
             $pdo->prepare('DELETE FROM options WHERE question_id=:id')->execute(['id'=>$questionId]);
             $insert=$pdo->prepare('INSERT INTO options(question_id,label,sort_order) VALUES(:question_id,:label,:sort_order)');
