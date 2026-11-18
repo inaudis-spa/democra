@@ -17,13 +17,16 @@ final class ResultService
         $flow=$election->fetchColumn();if($flow===false)throw new \RuntimeException('Votación no encontrada.');
         $crossed=$pdo->prepare('SELECT COUNT(*) FROM ballot_answers ba JOIN ballots b ON b.id=ba.ballot_id JOIN questions q ON q.id=ba.question_id JOIN options o ON o.id=ba.option_id WHERE b.election_id=:id AND (q.election_id<>b.election_id OR o.question_id<>q.id)');
         $crossed->execute(['id'=>$electionId]);if((int)$crossed->fetchColumn()>0)throw new \RuntimeException('La certificación fue bloqueada: existen respuestas cruzadas entre preguntas o procesos.');
-        $negative=$pdo->prepare('SELECT COUNT(*) FROM ballots WHERE election_id=:id AND weight<0');$negative->execute(['id'=>$electionId]);
-        if((int)$negative->fetchColumn()>0)throw new \RuntimeException('La certificación fue bloqueada: existen pesos negativos.');
+        $negative=$pdo->prepare('SELECT COUNT(*) FROM ballots WHERE election_id=:id AND (weight<=0 OR weight>99999999.9999)');$negative->execute(['id'=>$electionId]);
+        if((int)$negative->fetchColumn()>0)throw new \RuntimeException('La certificación fue bloqueada: existen pesos fuera de rango.');
         if($flow==='traditional'){
             $counts=$pdo->prepare("SELECT (SELECT COUNT(*) FROM ballots WHERE election_id=:id1) ballots,(SELECT COUNT(*) FROM census_members WHERE election_id=:id2 AND has_voted=1) voted,(SELECT COUNT(*) FROM census_members WHERE election_id=:id3 AND status='eligible') eligible,(SELECT COUNT(*) FROM election_participations WHERE election_id=:id4) participations");
             $counts->execute(['id1'=>$electionId,'id2'=>$electionId,'id3'=>$electionId,'id4'=>$electionId]);$c=$counts->fetch(PDO::FETCH_ASSOC);
             if((int)$c['ballots']!==(int)$c['voted']||(int)$c['ballots']>(int)$c['eligible'])throw new \RuntimeException('La certificación fue bloqueada: participación y papeletas no coinciden.');
-            if((int)$c['participations']>0&&(int)$c['participations']!==(int)$c['ballots'])throw new \RuntimeException('La certificación fue bloqueada: el registro único de participación no coincide.');
+            if((int)$c['participations']!==(int)$c['ballots'])throw new \RuntimeException('La certificación fue bloqueada: el registro único de participación no coincide.');
+            $weights=$pdo->prepare("SELECT COALESCE(SUM(weight),0) ballots_weight, (SELECT COALESCE(SUM(vote_weight),0) FROM census_members WHERE election_id=:id1 AND status='eligible') eligible_weight FROM ballots WHERE election_id=:id2");
+            $weights->execute(['id1'=>$electionId,'id2'=>$electionId]);$w=$weights->fetch(PDO::FETCH_ASSOC);
+            if((float)$w['ballots_weight']>(float)$w['eligible_weight'])throw new \RuntimeException('La certificación fue bloqueada: el peso total de las papeletas supera el padrón habilitado.');
             $invalidChoices=$pdo->prepare('SELECT COUNT(*) FROM (SELECT b.id,q.id question_id,q.min_choices,q.max_choices,COUNT(DISTINCT ba.option_id) choices FROM ballots b JOIN questions q ON q.election_id=b.election_id LEFT JOIN ballot_answers ba ON ba.ballot_id=b.id AND ba.question_id=q.id WHERE b.election_id=:id GROUP BY b.id,q.id,q.min_choices,q.max_choices HAVING choices<q.min_choices OR choices>q.max_choices) anomalies');
             $invalidChoices->execute(['id'=>$electionId]);if((int)$invalidChoices->fetchColumn()>0)throw new \RuntimeException('La certificación fue bloqueada: una papeleta incumple mínimos o máximos.');
         }else{
