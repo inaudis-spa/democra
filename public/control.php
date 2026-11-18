@@ -30,13 +30,13 @@ if (!$isAdmin) {
     $snapshot = LiveControlService::snapshot($id);
     $statusLabels = ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'];
     ?>
-    <!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta de votación | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head>
+    <!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta de votación | DEMOCRA</title><link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css"></head>
     <body class="vota-ui"><div class="v-shell"><?php Navigation::sidebar($user, 'elections', $id, $election['title']); ?>
     <div class="v-main"><header class="v-topbar"><a class="v-link" href="/elections.php">← Mis votaciones</a></header><main class="v-content">
     <div class="v-headrow"><div><div class="v-kicker">Consulta de proceso</div><h1 class="v-title"><?=htmlspecialchars($election['title'])?></h1><p class="v-subtitle">Información y participación de la votación asignada.</p></div><span class="v-status"><?=htmlspecialchars($statusLabels[$election['status']]??$election['status'])?></span></div>
     <section class="v-stats"><div class="v-card v-stat"><strong><?=$snapshot['eligible']?></strong><span>Habilitados</span></div><div class="v-card v-stat teal"><strong><?=$snapshot['voted']?></strong><span>Votos recibidos</span></div><div class="v-card v-stat orange"><strong><?=$snapshot['participation']?>%</strong><span>Participación</span></div></section>
     <section class="v-card v-pad"><h2>Información</h2><p><?=htmlspecialchars((string)$election['description'])?></p><p>Inicio: <?=htmlspecialchars((string)$election['starts_at'])?> · Término: <?=htmlspecialchars((string)$election['ends_at'])?></p><a class="v-btn v-btn-primary" href="/results.php?election_id=<?=$id?>">Consultar resultados →</a></section>
-    </main></div></div><script src="/assets/quorum-confirm.js" defer></script></body></html>
+    </main></div></div><script src="/assets/democra-confirm.js" defer></script></body></html>
     <?php
     exit;
 }
@@ -94,7 +94,7 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Centro de control | DEMOCRA</title>
-    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css">
+    <link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css">
     <link rel="stylesheet" href="/assets/control-center.css">
     <style>.cc-action button{display:flex;flex-direction:column;align-items:center;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}.cc-action-disabled{opacity:.58}</style>
 </head>

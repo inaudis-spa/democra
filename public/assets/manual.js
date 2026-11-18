@@ -54,7 +54,7 @@
   let lessonIndex = 0;
   const learning = document.querySelector('[data-learning]');
   const profileSection = document.querySelector('#elegir-perfil');
-  const storageKey = 'quorum-manual-progress-v1';
+  const storageKey = 'democra-manual-progress-v1';
   const returnPath = document.body.dataset.returnPath || '/login.php';
   const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
   document.querySelector('[data-total-lessons]').textContent = Object.keys(common).length;

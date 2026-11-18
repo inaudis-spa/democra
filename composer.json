@@ -1,6 +1,6 @@
 {
-  "name": "inaudis/quorum",
-  "description": "QUORUM voting platform",
+  "name": "inaudis/democra",
+  "description": "DEMOCRA voting platform",
   "type": "project",
   "require": {
     "php": "^8.3",

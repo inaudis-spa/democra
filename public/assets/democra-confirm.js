@@ -9,10 +9,10 @@
       panel.className = 'v-card v-pad';
       panel.setAttribute('role', 'dialog');
       panel.setAttribute('aria-modal', 'true');
-      panel.setAttribute('aria-labelledby', 'quorum-confirm-title');
+      panel.setAttribute('aria-labelledby', 'democra-confirm-title');
       panel.style.cssText = 'background:#fff;width:min(100%,480px);max-height:90vh;overflow:auto';
       const heading = document.createElement('h2');
-      heading.id = 'quorum-confirm-title';
+      heading.id = 'democra-confirm-title';
       heading.textContent = 'Confirmar acción';
       const description = document.createElement('p');
       description.className = 'v-muted';
@@ -48,7 +48,7 @@
       document.body.append(overlay); cancel.focus();
     });
   }
-  window.QuorumConfirm = ask;
+  window.DemocraConfirm = ask;
   document.addEventListener('submit', function (event) {
     const form = event.target;
     if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || form.dataset.confirmed === '1') return;

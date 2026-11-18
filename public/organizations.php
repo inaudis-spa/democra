@@ -33,7 +33,7 @@ $organizations=OrganizationService::all();
 <head><link rel="icon" type="image/png" href="/assets/democra-mark.png">
     <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Organizaciones | DEMOCRA</title>
-    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/organizations.css">
+    <link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/organizations.css">
 </head>
 <body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user,'organizations'); ?>

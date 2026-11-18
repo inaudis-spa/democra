@@ -19,7 +19,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="description" content="Manual interactivo de DEMOCRA para administradores, organizadores, ministros de fe y votantes.">
     <title>Centro de aprendizaje | DEMOCRA</title>
-    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css">
+    <link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css">
     <link rel="stylesheet" href="/assets/manual.css">
     <link rel="stylesheet" href="/assets/manual-learning.css">
     <script src="/assets/manual.js" defer></script>

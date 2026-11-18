@@ -1,4 +1,4 @@
-# Informe de auditoría electoral — DEMOCRA (legado QUORUM)
+# Informe de auditoría electoral — DEMOCRA
 
 Fecha: 18-11-2026  
 Etapa: 1 — auditoría estática  
@@ -52,7 +52,7 @@ Existe además una migración pendiente `20261118_identified_ballots.sql`. Segú
 | E-09 | Media | `DECIMAL(12,4)` admite un máximo alto, pero los límites de peso y suma no están formalizados como invariante de negocio ni `CHECK` en el esquema base. | Resultados ponderados fuera del dominio esperado; riesgo de suma excesiva según escala real. | Requiere decisión de producto |
 | E-10 | Media | La certificación protege el resumen agregado, pero no existe manifiesto de conteos/invariantes (papeletas, respuestas válidas, participaciones) previo a certificar. | Puede certificarse un conjunto internamente anómalo si la BD fue alterada por fuera de la aplicación. | Pendiente de código |
 | E-11 | Baja | El rate limit de login vive en sesión del navegador. | Se evade cambiando sesión/IP/dispositivo; afecta cuentas administrativas, no la unicidad transaccional del voto. | Pendiente |
-| E-12 | Baja | Los nombres internos y documentación mezclan QUORUM/DEMOCRA/INAUDIS durante una migración de marca. | Riesgo operativo y de despliegue, no integridad matemática. | Trabajo local pendiente |
+| E-12 | Baja | Se encontraron nombres antiguos durante la migración a DEMOCRA. Las referencias de marca del repositorio se actualizaron. | Riesgo operativo y de despliegue, no integridad matemática. | Corregido en el repositorio |
 
 ## Controles que sí existen
 
@@ -81,7 +81,7 @@ Existe además una migración pendiente `20261118_identified_ballots.sql`. Segú
 ## Plan propuesto
 
 1. Acordar reglas máximas y semántica de idempotencia.
-2. Aprobar cambios estructurales descritos en `CAMBIOS_BD_QUORUM.md`.
+2. Aprobar cambios estructurales descritos en `CAMBIOS_BD_DEMOCRA.md`.
 3. Implementar primero integridad declarativa y luego adaptar servicios.
 4. Agregar auditoría de rechazos sin identidad/preferencia en voto secreto.
 5. Agregar invariantes de certificación.

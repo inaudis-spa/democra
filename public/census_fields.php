@@ -28,7 +28,7 @@ $fields=$scope==='organization'?CensusTemplateService::organization($id):CensusT
 $editable=$scope==='organization'||(in_array($election['status'],['draft','scheduled'],true)&&empty($election['census_locked_at']));
 if($scope==='election'){$members=\InaudisVote\Services\CensusService::list($id);$editable=$editable&&!$members;}
 ?>
-<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Campos del padrón | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head><body class="vota-ui"><div class="v-shell">
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Campos del padrón | DEMOCRA</title><link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css"></head><body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user,'census',$scope==='election'?$id:null,$election['title']??null); ?>
 <div class="v-main"><main class="v-content"><a class="v-link" href="<?=$scope==='election'?'/census.php?election_id='.$id:'/organizations.php'?>">← Volver</a><h1 class="v-title">Campos del padrón</h1><p class="v-muted">Plantilla de <?=$scope==='organization'?'organización':'votación'?>. Nombre y Email son obligatorios. No se puede modificar una votación con votantes cargados o padrón bloqueado.</p>
 <?php if(isset($_GET['ok'])):?><div class="v-alert v-alert-ok">Configuración guardada.</div><?php endif;?>

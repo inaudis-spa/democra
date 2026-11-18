@@ -1,4 +1,4 @@
--- Quorum: invitation dispatch persistence. Additive migration; does not alter existing tables.
+-- DEMOCRA: invitation dispatch persistence. Additive migration; does not alter existing tables.
 -- Apply only after backup and explicit production deployment approval.
 CREATE TABLE IF NOT EXISTS invitation_campaigns (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

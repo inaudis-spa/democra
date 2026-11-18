@@ -28,7 +28,7 @@ $filterOrganizations=[];foreach($elections as $election){$filterOrganizations[(i
 function electionStatusClass(string $status):string{return $status==='open'?'v-status-open':($status==='closed'?'v-status-closed':'v-status-draft');}
 function electionStatusLabel(string $status):string{return ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'][$status]??$status;}
 ?>
-<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votaciones | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css?v=d79dcf91"><link rel="stylesheet" href="/assets/democra.css"><script src="/assets/elections.js?v=4f8b672c" defer></script></head>
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votaciones | DEMOCRA</title><link rel="stylesheet" href="/assets/democra-base.css?v=d79dcf91"><link rel="stylesheet" href="/assets/democra.css"><script src="/assets/elections.js?v=4f8b672c" defer></script></head>
 <body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, 'elections'); ?>
 <div class="v-main"><header class="v-topbar"><span class="v-muted"><?=$user['role']==='admin'?'Gestión electoral':'Procesos asignados'?></span><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">

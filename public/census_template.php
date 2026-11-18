@@ -12,7 +12,7 @@ $election=ElectionService::find($electionId);
 if(!$election || !Authorization::canManageElection($user,(int)$election['organization_id'],$electionId)){http_response_code(404);exit('Votación no encontrada.');}
 $fields=CensusTemplateService::election($electionId);
 header('Content-Type: text/csv; charset=UTF-8');
-header('Content-Disposition: attachment; filename="quorum_plantilla_votantes.csv"');
+header('Content-Disposition: attachment; filename="democra_plantilla_votantes.csv"');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 

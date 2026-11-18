@@ -48,7 +48,7 @@ $introductions=[
  'voter'=>'Aquí encontrarás lo necesario para verificar tu identidad, votar y guardar tu comprobante.'
 ];
 ?>
-<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cómo funciona | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/guide.css"><link rel="stylesheet" href="/assets/ballot.css"></head><body class="vota-ui">
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cómo funciona | DEMOCRA</title><link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/guide.css"><link rel="stylesheet" href="/assets/ballot.css"></head><body class="vota-ui">
 <?php if($user&&empty($forceVoterGuide)): ?><div class="v-shell"><?php Navigation::sidebar($user, 'guide'); ?><div class="v-main"><header class="v-topbar"><a class="v-link" href="/dashboard.php">Volver al inicio</a><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
 <?php else: ?><main class="v-public-guide"><header class="v-voter-head"><div class="v-brand" style="margin:0;color:var(--navy)"><img class="v-brandmark" src="/assets/democra-mark.png" alt="Democra"><span><span class="v-brand-name">DEMOCRA<small>VOTO DIGITAL</small></span></span></div><a class="v-link" href="/login.php">Acceso administrativo</a></header>
 <?php endif; ?>

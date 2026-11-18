@@ -1,4 +1,4 @@
--- QUORUM: modalidad secuencial. Ejecutar una sola vez, después de respaldo.
+-- DEMOCRA: modalidad secuencial. Ejecutar una sola vez, después de respaldo.
 -- La modalidad tradicional continúa siendo el valor predeterminado.
 ALTER TABLE elections
     ADD COLUMN question_flow ENUM('traditional','sequential') NOT NULL DEFAULT 'traditional';

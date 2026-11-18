@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!doctype html>
 <html lang="es">
-<head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acceso | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/password-toggle.css"></head>
+<head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acceso | DEMOCRA</title><link rel="stylesheet" href="/assets/democra-base.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/password-toggle.css"></head>
 <body class="vota-ui">
 <main class="v-login">
 <section class="v-login-art"><img class="v-login-logo" src="/assets/democra-logo.png" alt="Democra · Voto Digital"><div style="max-width:540px;position:relative;z-index:1"><div class="orb"></div><p style="margin-top:28px;text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:#8bc0ff">Decisiones digitales verificables</p><h1 style="font-size:46px;line-height:1.06;margin:12px 0 18px">Confianza en cada decisión.</h1><p style="font-size:18px;line-height:1.6;color:#c8d9e8">Gestiona procesos de votación seguros, simples y trazables desde una plataforma diseñada para generar confianza.</p></div><div style="font-size:12px;color:#a9bfd1">Seguridad · Integridad · Trazabilidad</div></section>
