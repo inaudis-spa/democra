@@ -35,7 +35,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 $members=CensusService::list($electionId);$voted=count(array_filter($members,fn($member)=>(bool)$member['has_voted']));
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Participantes | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head><body class="vota-ui"><div class="v-shell">
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Participantes | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head><body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, 'census', $electionId, $election['title']); ?>
 <div class="v-main"><header class="v-topbar"><a class="v-link" href="/control.php?election_id=<?=$electionId?>">← Volver al centro de control</a><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
 <div class="v-headrow"><div><div class="v-kicker">Padrón electoral</div><h1 class="v-title"><?=htmlspecialchars($election['title'])?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$user['role']==='organizer'?'Consulta de votantes asignados, sin permisos de modificación.':'Administra las personas habilitadas e invitaciones del proceso.'?></p></div><span class="v-status <?=$editable?'v-status-draft':'v-status-open'?>"><?=$user['role']==='organizer'?'Solo lectura':($editable?'Editable':'Padrón bloqueado')?></span></div>

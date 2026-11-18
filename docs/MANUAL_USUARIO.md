@@ -1,10 +1,10 @@
-# Manual de usuario de QUORUM
+# Manual de usuario de DEMOCRA
 
 Este manual explica, con pasos simples, qué puede hacer cada perfil y cómo utilizar cada opción del menú izquierdo.
 
 ## 1. Antes de comenzar
 
-QUORUM tiene cuatro perfiles:
+DEMOCRA tiene cuatro perfiles:
 
 | Perfil | Función principal |
 |---|---|
@@ -66,7 +66,7 @@ Importante: crear una votación no la abre. Primero debes configurar preguntas y
 
 ## Organizaciones
 
-Esta opción aparece solamente para el Administrador. Sirve para crear los clientes que usarán QUORUM.
+Esta opción aparece solamente para el Administrador. Sirve para crear los clientes que usarán DEMOCRA.
 
 1. Presiona **Organizaciones**.
 2. En **Nueva organización**, escribe el nombre del cliente.
@@ -174,7 +174,7 @@ El Organizador puede administrar organizadores y ministros de fe de su mismo cli
 3. Presiona **Crear usuario**.
 4. Después asigna a la persona en la votación correspondiente.
 
-No puedes crear un Administrador INAUDIS.
+No puedes crear un Administrador DEMOCRA.
 
 ## Auditoría general
 
@@ -421,7 +421,7 @@ El Votante no utiliza el menú izquierdo ni una contraseña administrativa.
 ## Emitir el voto
 
 1. Abre el enlace personal recibido.
-2. Confirma que la pantalla muestre QUORUM y la votación esperada.
+2. Confirma que la pantalla muestre DEMOCRA y la votación esperada.
 3. Escribe el código OTP de seis dígitos.
 4. Presiona **Validar y continuar**.
 5. Lee toda la pregunta y sus alternativas.

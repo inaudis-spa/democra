@@ -1,10 +1,10 @@
-# Estado MVP — INAUDIS Vote
+# Estado MVP — DEMOCRA
 
 Fecha de corte: 2026-09-02
 
 ## Implementado en código
 
-- [x] Stack estándar INAUDIS: HTML5 + JavaScript Vanilla + Tailwind CSS + PHP 8.3 + Apache + MySQL.
+- [x] Stack estándar DEMOCRA: HTML5 + JavaScript Vanilla + Tailwind CSS + PHP 8.3 + Apache + MySQL.
 - [x] Autenticación administrativa.
 - [x] Roles administrador / organizador.
 - [x] Gestión de usuarios administrativos.

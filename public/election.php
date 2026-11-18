@@ -10,7 +10,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 $election=ElectionService::find($id);$questions=ElectionService::questions($id);$editable=in_array($election['status'],['draft','scheduled'],true)&&empty($election['ballot_locked_at']);$statusClass=$election['status']==='open'?'v-status-open':($election['status']==='closed'?'v-status-closed':'v-status-draft');
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=htmlspecialchars($election['title'])?> | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head><body class="vota-ui"><div class="v-shell">
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=htmlspecialchars($election['title'])?> | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head><body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, 'configuration', $id, $election['title']); ?>
 <div class="v-main"><header class="v-topbar"><a class="v-link" href="/control.php?election_id=<?=$id?>">← Volver al centro de control</a><span style="flex:1"></span><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content">
 <div class="v-headrow"><div><div class="v-kicker"><?=htmlspecialchars($election['organization_name'])?></div><h1 class="v-title">Configuración de papeleta</h1><div class="v-accent-line"></div><p class="v-subtitle"><?=htmlspecialchars((string)$election['description'])?></p></div><span class="v-status <?=$statusClass?>"><?=htmlspecialchars($election['status'])?></span></div>

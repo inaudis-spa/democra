@@ -30,7 +30,7 @@ if (!$isAdmin) {
     $snapshot = LiveControlService::snapshot($id);
     $statusLabels = ['draft'=>'Borrador','scheduled'=>'Programada','open'=>'En vivo','closed'=>'Finalizada','cancelled'=>'Cancelada'];
     ?>
-    <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta de votación | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head>
+    <!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta de votación | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head>
     <body class="vota-ui"><div class="v-shell"><?php Navigation::sidebar($user, 'elections', $id, $election['title']); ?>
     <div class="v-main"><header class="v-topbar"><a class="v-link" href="/elections.php">← Mis votaciones</a></header><main class="v-content">
     <div class="v-headrow"><div><div class="v-kicker">Consulta de proceso</div><h1 class="v-title"><?=htmlspecialchars($election['title'])?></h1><p class="v-subtitle">Información y participación de la votación asignada.</p></div><span class="v-status"><?=htmlspecialchars($statusLabels[$election['status']]??$election['status'])?></span></div>
@@ -90,11 +90,11 @@ $statusLabel = $statusLabels[$election['status']] ?? ucfirst((string) $election[
 ?>
 <!doctype html>
 <html lang="es">
-<head>
+<head><link rel="icon" type="image/png" href="/assets/democra-mark.png">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Centro de control | QUORUM</title>
-    <link rel="stylesheet" href="/assets/quorum.css">
+    <title>Centro de control | DEMOCRA</title>
+    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css">
     <link rel="stylesheet" href="/assets/control-center.css">
     <style>.cc-action button{display:flex;flex-direction:column;align-items:center;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}.cc-action-disabled{opacity:.58}</style>
 </head>

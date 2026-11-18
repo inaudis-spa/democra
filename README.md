@@ -1,16 +1,16 @@
-# QUORUM — by INAUDIS
+# DEMOCRA · VOTO DIGITAL
 
 ## Documentación de usuario
 
 - [Manual completo por perfiles y menú lateral](docs/MANUAL_USUARIO.md)
 - [Procedimiento de despliegue a producción](docs/RUNBOOK_PRODUCCION.md)
 
-QUORUM es una plataforma SaaS de votación electrónica, gestión de censos, procesos electorales, auditoría y generación de actas.
+DEMOCRA es una plataforma SaaS de votación electrónica, gestión de censos, procesos electorales, auditoría y generación de actas.
 
 ## Objetivo
 Construir y fortalecer una plataforma funcional que permita configurar, ejecutar y auditar procesos de votación digital, dejando una base técnica reutilizable para evolucionar a MVP, piloto y producto productivo.
 
-## Stack técnico oficial INAUDIS
+## Stack técnico oficial DEMOCRA
 - HTML5
 - JavaScript Vanilla
 - Tailwind CSS
@@ -47,7 +47,7 @@ Demo → MVP → Piloto → Productivo → Auditoría/Certificación.
 - `docs/SEGURIDAD.md`
 - `docs/ROADMAP.md`
 
-© INAUDIS SpA
+© DEMOCRA SpA
 
 ## Estado de seguridad y preparación
 

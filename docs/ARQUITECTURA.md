@@ -1,4 +1,4 @@
-# Arquitectura — INAUDIS Vote
+# Arquitectura — DEMOCRA
 
 ## Stack base
 - Frontend: HTML5 + Tailwind CSS + JavaScript Vanilla.

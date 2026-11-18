@@ -1,4 +1,4 @@
-# Roadmap — INAUDIS Vote
+# Roadmap — DEMOCRA
 
 ## Fase 1 — Demo v1
 - Base del proyecto y autenticación.

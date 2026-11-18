@@ -10,6 +10,44 @@ use PDO;
 
 final class VotingService
 {
+    private static function idempotencyKey(string $key): string
+    {
+        $key=strtolower(trim($key));
+        return preg_match('/^[a-f0-9]{64}$/',$key)?$key:bin2hex(random_bytes(32));
+    }
+
+    private static function committedReceipt(int $tokenId,int $scopeKey): ?string
+    {
+        $stmt=Database::connection()->prepare("SELECT receipt_hash FROM vote_submissions WHERE token_id=:token AND scope_key=:scope AND status='committed' LIMIT 1");
+        $stmt->execute(['token'=>$tokenId,'scope'=>$scopeKey]);
+        $receipt=$stmt->fetchColumn();
+        return is_string($receipt)&&preg_match('/^[a-f0-9]{64}$/',$receipt)?$receipt:null;
+    }
+
+    private static function claimSubmission(PDO $pdo,array $context,int $scopeKey,string $key): ?string
+    {
+        $insert=$pdo->prepare("INSERT IGNORE INTO vote_submissions(idempotency_key,election_id,token_id,scope_key,status) VALUES(:key,:election,:token,:scope,'processing')");
+        $insert->execute(['key'=>$key,'election'=>(int)$context['election_id'],'token'=>(int)$context['token_id'],'scope'=>$scopeKey]);
+        if($insert->rowCount()===1)return null;
+        $existing=$pdo->prepare('SELECT receipt_hash,status FROM vote_submissions WHERE token_id=:token AND scope_key=:scope FOR UPDATE');
+        $existing->execute(['token'=>(int)$context['token_id'],'scope'=>$scopeKey]);
+        $row=$existing->fetch(PDO::FETCH_ASSOC);
+        if($row&&$row['status']==='committed'&&is_string($row['receipt_hash']))return $row['receipt_hash'];
+        throw new \RuntimeException('La solicitud de voto ya está siendo procesada.');
+    }
+
+    private static function commitSubmission(PDO $pdo,int $tokenId,int $scopeKey,string $receipt): void
+    {
+        $stmt=$pdo->prepare("UPDATE vote_submissions SET status='committed',receipt_hash=:receipt WHERE token_id=:token AND scope_key=:scope AND status='processing'");
+        $stmt->execute(['receipt'=>$receipt,'token'=>$tokenId,'scope'=>$scopeKey]);
+        if($stmt->rowCount()!==1)throw new \RuntimeException('No fue posible confirmar la idempotencia del voto.');
+    }
+
+    private static function auditRejection(?array $context,string $category): void
+    {
+        try{Audit::log('vote.rejected','election',isset($context['election_id'])?(int)$context['election_id']:null,['category'=>$category]);}catch(\Throwable){}
+    }
+
     public static function resolveToken(string $rawToken): ?array
     {
         $hash = hash('sha256', $rawToken);
@@ -67,7 +105,7 @@ final class VotingService
         return array_map('intval',$stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
-    private static function submitSequential(string $rawToken, array $answers, array $context): string
+    private static function submitSequential(string $rawToken, array $answers, array $context,string $idempotencyKey): string
     {
         $pdo=Database::connection();
         $electionId=(int)$context['election_id'];
@@ -93,6 +131,8 @@ final class VotingService
             if (count($questions)!==1) throw new \RuntimeException('No hay una pregunta habilitada.');
             $q=$questions[0];
             $qid=(int)$q['id'];
+            $previous=self::claimSubmission($pdo,$context,$qid,$idempotencyKey);
+            if($previous!==null){$pdo->commit();return $previous;}
             if (count($answers)!==1 || !array_key_exists((string)$qid,$answers)) {
                 throw new \RuntimeException('Solo puedes responder la pregunta habilitada.');
             }
@@ -107,28 +147,35 @@ final class VotingService
             $participation=$pdo->prepare('INSERT INTO question_participations(question_id,census_member_id) VALUES(:qid,:mid)');
             $participation->execute(['qid'=>$qid,'mid'=>(int)$context['census_member_id']]);
             $ballotToken=bin2hex(random_bytes(32));
-            $stmt=$pdo->prepare('INSERT INTO ballots(election_id,ballot_token,weight,submitted_at) VALUES(:eid,:token,:weight,NOW())');
-            $stmt->execute(['eid'=>$electionId,'token'=>$ballotToken,'weight'=>$fresh['vote_weight']]);
+            $identified=($context['voting_mode']??'secret')==='public'?(int)$context['census_member_id']:null;
+            $stmt=$pdo->prepare('INSERT INTO ballots(election_id,census_member_id,ballot_token,weight,submitted_at) VALUES(:eid,:member_id,:token,:weight,NOW())');
+            $stmt->execute(['eid'=>$electionId,'member_id'=>$identified,'token'=>$ballotToken,'weight'=>$fresh['vote_weight']]);
             $ballotId=(int)$pdo->lastInsertId();
             $stmt=$pdo->prepare('INSERT INTO ballot_answers(ballot_id,question_id,option_id) VALUES(:bid,:qid,:oid)');
             foreach($selected as $optionId)$stmt->execute(['bid'=>$ballotId,'qid'=>$qid,'oid'=>$optionId]);
             Audit::log('vote.question_submitted','election',$electionId,['question_id'=>$qid]);
+            $receipt=hash('sha256',$ballotToken);
+            self::commitSubmission($pdo,(int)$context['token_id'],$qid,$receipt);
             $pdo->commit();
-            return hash('sha256',$ballotToken);
+            return $receipt;
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
+            self::auditRejection($context,'sequential_conflict_or_invalid');
             throw $e;
         }
     }
 
-    public static function submit(string $rawToken, array $answers): string
+    public static function submit(string $rawToken, array $answers,string $idempotencyKey=''): string
     {
         $pdo=Database::connection();
         $context=self::resolveToken($rawToken);
+        $key=self::idempotencyKey($idempotencyKey);
+        if($context){$previous=self::committedReceipt((int)$context['token_id'],0);if($previous!==null)return $previous;}
         if (!$context || !self::canVote($context)) {
+            self::auditRejection($context,'not_eligible_or_closed');
             throw new \RuntimeException('La invitación no está habilitada para votar.');
         }
-        if (($context['question_flow'] ?? 'traditional') === 'sequential') return self::submitSequential($rawToken,$answers,$context);
+        if (($context['question_flow'] ?? 'traditional') === 'sequential') return self::submitSequential($rawToken,$answers,$context,$key);
         $questions=ElectionService::questions((int)$context['election_id']);
         foreach ($questions as $question) {
             $selected=$answers[(string)$question['id']] ?? [];
@@ -167,8 +214,22 @@ final class VotingService
                 || $fresh['status']!=='eligible') {
                 throw new \RuntimeException('La invitación ya no está habilitada para votar.');
             }
-            $stmt=$pdo->prepare('INSERT INTO ballots (election_id,ballot_token,weight,submitted_at) VALUES (:election_id,:ballot_token,:weight,NOW())');
-            $stmt->execute(['election_id'=>(int)$context['election_id'],'ballot_token'=>$ballotToken,'weight'=>(float)$context['vote_weight']]);
+            $identified=($context['voting_mode']??'secret')==='public'?(int)$context['census_member_id']:null;
+            $previous=self::claimSubmission($pdo,$context,0,$key);
+            if($previous!==null){$pdo->commit();return $previous;}
+            $receipt=hash('sha256',$ballotToken);
+            $participation=$pdo->prepare('INSERT IGNORE INTO election_participations(election_id,census_member_id,receipt_hash) VALUES(:election,:member,:receipt)');
+            $participation->execute(['election'=>(int)$context['election_id'],'member'=>(int)$context['census_member_id'],'receipt'=>$receipt]);
+            if($participation->rowCount()!==1){
+                $existing=$pdo->prepare('SELECT receipt_hash FROM election_participations WHERE election_id=:election AND census_member_id=:member');
+                $existing->execute(['election'=>(int)$context['election_id'],'member'=>(int)$context['census_member_id']]);
+                $existingReceipt=$existing->fetchColumn();
+                if(!is_string($existingReceipt))throw new \RuntimeException('El voto ya fue registrado.');
+                self::commitSubmission($pdo,(int)$context['token_id'],0,$existingReceipt);
+                $pdo->commit();return $existingReceipt;
+            }
+            $stmt=$pdo->prepare('INSERT INTO ballots (election_id,census_member_id,ballot_token,weight,submitted_at) VALUES (:election_id,:member_id,:ballot_token,:weight,NOW())');
+            $stmt->execute(['election_id'=>(int)$context['election_id'],'member_id'=>$identified,'ballot_token'=>$ballotToken,'weight'=>(float)$context['vote_weight']]);
             $ballotId=(int)$pdo->lastInsertId();
             $answerStmt=$pdo->prepare('INSERT INTO ballot_answers (ballot_id,question_id,option_id) VALUES (:ballot_id,:question_id,:option_id)');
             foreach ($questions as $question) {
@@ -184,11 +245,13 @@ final class VotingService
             $updateToken=$pdo->prepare('UPDATE voter_tokens SET consumed_at=NOW() WHERE id=:id AND consumed_at IS NULL');
             $updateToken->execute(['id'=>(int)$context['token_id']]);
             if($updateToken->rowCount()!==1) throw new \RuntimeException('La invitación ya fue utilizada.');
-            Audit::log('vote.submitted','election',(int)$context['election_id'],['ballot_receipt'=>hash('sha256',$ballotToken)]);
+            Audit::log('vote.submitted','election',(int)$context['election_id'],['ballot_receipt'=>$receipt]);
+            self::commitSubmission($pdo,(int)$context['token_id'],0,$receipt);
             $pdo->commit();
-            return hash('sha256',$ballotToken);
+            return $receipt;
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
+            self::auditRejection($context,'transaction_conflict_or_invalid');
             throw $e;
         }
     }

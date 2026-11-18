@@ -1,4 +1,4 @@
-# PRD — INAUDIS Vote Demo v1
+# PRD — DEMOCRA Demo v1
 
 ## 1. Propósito
 Construir un demo funcional de votación electrónica orientado a organizaciones, sindicatos, asociaciones, empresas y colectivos que necesiten configurar y ejecutar procesos de votación digital.

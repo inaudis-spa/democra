@@ -1,4 +1,4 @@
-# Implementación — INAUDIS Vote
+# Implementación — DEMOCRA
 
 Este documento registra decisiones técnicas y el estado real de implementación del Demo/MVP v1.
 

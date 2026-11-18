@@ -23,7 +23,7 @@ final class UserService
     {
         $pdo=Database::connection();$name=trim((string)($data['name']??''));$email=mb_strtolower(trim((string)($data['email']??'')));$password=(string)($data['password']??'');
         $role=in_array(($data['role']??''),['admin','organizer','witness'],true)?(string)$data['role']:'organizer';$organizationId=!empty($data['organization_id'])?(int)$data['organization_id']:null;
-        if(($actor['role']??'')==='organizer'){$organizationId=(int)$actor['organization_id'];if(!in_array($role,['organizer','witness'],true))throw new \RuntimeException('Un organizador no puede crear administradores INAUDIS.');}
+        if(($actor['role']??'')==='organizer'){$organizationId=(int)$actor['organization_id'];if(!in_array($role,['organizer','witness'],true))throw new \RuntimeException('Un organizador no puede crear administradores DEMOCRA.');}
         if($name==='')throw new \InvalidArgumentException('El nombre es obligatorio.');
         if(mb_strlen($name)>150)throw new \InvalidArgumentException('El nombre no puede superar 150 caracteres.');
         if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new \InvalidArgumentException('Ingresa un correo electrónico válido.');

@@ -1,4 +1,4 @@
-# Seguridad — INAUDIS Vote Demo v1
+# Seguridad — DEMOCRA Demo v1
 
 ## Objetivo
 Aplicar controles de seguridad razonables desde el demo sin presentar esta versión como certificada ni apta todavía para procesos regulados en producción.

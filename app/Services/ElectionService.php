@@ -155,8 +155,15 @@ final class ElectionService
     {
         $pdo=Database::connection();
         $stmt=$pdo->prepare('SELECT * FROM questions WHERE election_id=:id ORDER BY sort_order,id');$stmt->execute(['id'=>$electionId]);
-        $questions=$stmt->fetchAll(PDO::FETCH_ASSOC);$opt=$pdo->prepare('SELECT id,label,sort_order FROM options WHERE question_id=:id ORDER BY sort_order,id');
-        foreach($questions as &$q){$opt->execute(['id'=>$q['id']]);$q['options']=$opt->fetchAll(PDO::FETCH_ASSOC);}return $questions;
+        $questions=$stmt->fetchAll(PDO::FETCH_ASSOC);
+        if(!$questions)return [];
+        $ids=array_map(static fn(array $q):int=>(int)$q['id'],$questions);
+        $placeholders=implode(',',array_fill(0,count($ids),'?'));
+        $opt=$pdo->prepare("SELECT id,question_id,label,sort_order FROM options WHERE question_id IN ({$placeholders}) ORDER BY question_id,sort_order,id");
+        $opt->execute($ids);$grouped=[];
+        foreach($opt->fetchAll(PDO::FETCH_ASSOC) as $option)$grouped[(int)$option['question_id']][]=$option;
+        foreach($questions as &$q)$q['options']=$grouped[(int)$q['id']]??[];
+        unset($q);return $questions;
     }
 
     public static function setStatus(int $electionId,string $status): void

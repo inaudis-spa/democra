@@ -22,12 +22,12 @@ final class ActaPdfDocument
     private const PAGE_W=595.28;
     private const PAGE_H=841.89;
     private const MARGIN=48.0;
-    private const NAVY=[0.059,0.165,0.267];
-    private const BLUE=[0.122,0.420,0.549];
-    private const LIGHT_BLUE=[0.925,0.965,0.980];
-    private const ORANGE=[1.0,0.478,0.0];
-    private const TEAL=[0.122,0.549,0.537];
-    private const INK=[0.075,0.165,0.243];
+    private const NAVY=[0.024,0.141,0.357];
+    private const BLUE=[0.027,0.435,0.816];
+    private const LIGHT_BLUE=[0.925,0.973,0.996];
+    private const ORANGE=[0.031,0.620,0.878];
+    private const TEAL=[0.031,0.494,0.643];
+    private const INK=[0.063,0.157,0.290];
     private const MUTED=[0.40,0.47,0.54];
     private const LINE=[0.87,0.91,0.94];
     private const PALE=[0.965,0.976,0.984];
@@ -119,7 +119,7 @@ final class ActaPdfDocument
     {
         $this->rect(0,0,self::PAGE_W,$compact?84:96,self::NAVY);
         $this->logoMark(48,$compact?21:25,45);
-        $this->text(105,$compact?46:52,'QUORUM',21,'B',[1,1,1]);
+        $this->text(105,$compact?46:52,'DEMOCRA',21,'B',[1,1,1]);
         $this->text(106,$compact?65:72,'DECISIONES DIGITALES VERIFICABLES',6.8,'B',[0.72,0.83,0.90]);
         if($this->organizationLogo!==null){
             $this->text(374,$compact?26:30,$compact?'CONTINUACIÓN':'ACTA OFICIAL',7,'B',[0.72,0.83,0.90]);
@@ -162,7 +162,7 @@ final class ActaPdfDocument
     private function metadata(array $election): void
     {
         $this->rect(48,204,499,92,self::PALE,self::LINE);
-        $items=[['ORGANIZACIÓN',(string)$election['organization_name']],['ESTADO','Terminada'],['INICIO',$this->date((string)($election['starts_at']??''))],['CIERRE',$this->date((string)($election['ends_at']??''))],['MODALIDAD',($election['voting_mode']??'secret')==='secret'?'Voto secreto':'Voto público'],['GENERACIÓN',date('d-m-Y H:i')]];
+        $items=[['ORGANIZACIÓN',(string)$election['organization_name']],['ESTADO','Terminada'],['INICIO',$this->date((string)($election['starts_at']??''))],['CIERRE',$this->date((string)($election['ends_at']??''))],['MODALIDAD',($election['voting_mode']??'secret')==='secret'?'Voto secreto':'Voto identificado'],['GENERACIÓN',date('d-m-Y H:i')]];
         foreach($items as $i=>$item){$column=$i%3;$row=intdiv($i,3);$x=64+$column*163;$top=226+$row*38;$this->text($x,$top,$item[0],6.8,'B',self::MUTED);$this->text($x,$top+15,$item[1],9.2,'B',self::INK);}
     }
 
@@ -216,7 +216,7 @@ final class ActaPdfDocument
     private function addFooters(int $electionId): void
     {
         $total=count($this->pages);
-        foreach(array_keys($this->pages) as $index){$this->page=$index;$this->line(48,796,547,796,self::LINE);$this->text(48,814,'QUORUM by INAUDIS - Documento verificable',7,'R',self::MUTED);$this->text(390,814,'Proceso #'.$electionId.'  |  Página '.($index+1).' de '.$total,7,'R',self::MUTED);}
+        foreach(array_keys($this->pages) as $index){$this->page=$index;$this->line(48,796,547,796,self::LINE);$this->text(48,814,'DEMOCRA · VOTO DIGITAL - Documento verificable',7,'R',self::MUTED);$this->text(390,814,'Proceso #'.$electionId.'  |  Página '.($index+1).' de '.$total,7,'R',self::MUTED);}
     }
 
     private function date(string $value): string{if($value==='')return 'No informada';$timestamp=strtotime($value);return $timestamp?date('d-m-Y H:i',$timestamp):$value;}

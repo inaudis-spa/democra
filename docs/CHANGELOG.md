@@ -1,4 +1,4 @@
-# Changelog — INAUDIS Vote
+# Changelog — DEMOCRA
 
 Se documentan cambios relevantes del proyecto desde el inicio del repositorio.
 
@@ -6,7 +6,7 @@ Se documentan cambios relevantes del proyecto desde el inicio del repositorio.
 
 ### Documentación inicial
 - Definición del alcance del Demo/MVP v1.
-- Definición del stack técnico obligatorio de INAUDIS.
+- Definición del stack técnico obligatorio de DEMOCRA.
 - Documentación de arquitectura, seguridad y roadmap.
 - Configuración de `.gitignore` y `.env.example`.
 

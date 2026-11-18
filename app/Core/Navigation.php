@@ -31,7 +31,7 @@ final class Navigation
         };
 
         echo '<aside class="v-sidebar">';
-        echo '<div class="v-brand"><img class="v-brandmark" src="/assets/quorum-mark.svg" alt=""><span><span class="v-brand-name">QUORUM<small>by INAUDIS</small></span></span></div>';
+        echo '<div class="v-brand"><img class="v-brandmark" src="/assets/democra-mark.png" alt=""><span><span class="v-brand-name">DEMOCRA<small>VOTO DIGITAL</small></span></span></div>';
         echo '<nav class="v-nav" aria-label="Navegación principal"><div class="v-nav-label">Plataforma</div>';
         if ($role !== 'witness') echo $item('dashboard', '/dashboard.php', '&#8962;', 'Inicio');
         echo $item('elections', '/elections.php', '&#10003;', 'Votaciones');

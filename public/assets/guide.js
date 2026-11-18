@@ -8,7 +8,7 @@
   });
 
   const definitions = [
-    { target: '[data-tour="welcome"]', title: 'Bienvenido a QUORUM', text: 'Este panel resume tus procesos. El recorrido señalará cada opción directamente en la pantalla para que sepas dónde encontrarla.' },
+    { target: '[data-tour="welcome"]', title: 'Bienvenido a DEMOCRA', text: 'Este panel resume tus procesos. El recorrido señalará cada opción directamente en la pantalla para que sepas dónde encontrarla.' },
     { target: '[data-tour="new-election"]', title: 'Crea una votación', text: 'Comienza aquí. Define el nombre, las fechas y la modalidad del nuevo proceso electoral.' },
     { target: '[data-tour="elections"]', title: 'Configura tus procesos', text: 'En Votaciones encontrarás cada proceso y podrás entrar a su configuración, padrón y centro de control.' },
     { target: '[data-tour="control"]', optional: true, title: 'Opera desde el centro de control', text: 'Abre esta opción para gestionar preguntas, padrón, enlaces, apertura, cierre, resultados y fiscalización de esta votación.' },

@@ -14,21 +14,21 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
 ?>
 <!doctype html>
 <html lang="es">
-<head>
+<head><link rel="icon" type="image/png" href="/assets/democra-mark.png">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="Manual interactivo de QUORUM para administradores, organizadores, ministros de fe y votantes.">
-    <title>Centro de aprendizaje | QUORUM</title>
-    <link rel="stylesheet" href="/assets/quorum.css">
+    <meta name="description" content="Manual interactivo de DEMOCRA para administradores, organizadores, ministros de fe y votantes.">
+    <title>Centro de aprendizaje | DEMOCRA</title>
+    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css">
     <link rel="stylesheet" href="/assets/manual.css">
     <link rel="stylesheet" href="/assets/manual-learning.css">
     <script src="/assets/manual.js" defer></script>
 </head>
 <body class="vota-ui manual-page" data-default-profile="<?=htmlspecialchars($defaultProfile,ENT_QUOTES,'UTF-8')?>" data-return-path="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>">
 <header class="manual-topbar">
-    <a class="manual-brand" href="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>" aria-label="QUORUM, volver al sistema">
-        <img src="/assets/quorum-mark.svg" alt="">
-        <span>QUORUM<small>by INAUDIS</small></span>
+    <a class="manual-brand" href="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>" aria-label="DEMOCRA, volver al sistema">
+        <img src="/assets/democra-mark.png" alt="Democra">
+        <span>DEMOCRA<small>VOTO DIGITAL</small></span>
     </a>
     <nav aria-label="Acciones del manual">
         <button type="button" class="manual-plain-button" data-reset-progress>Reiniciar progreso</button>
@@ -39,7 +39,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
 <main>
     <section class="manual-hero">
         <div class="manual-hero-copy">
-            <span class="manual-eyebrow">Centro de aprendizaje QUORUM</span>
+            <span class="manual-eyebrow">Centro de aprendizaje DEMOCRA</span>
             <h1>Aprende a usar el sistema según tu perfil</h1>
             <p>No necesitas experiencia previa. Elige tu función y te mostraremos solamente las opciones que puedes ver, qué hace cada una y el orden correcto para trabajar.</p>
             <div class="manual-hero-actions">
@@ -56,7 +56,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
 
     <section class="manual-section profile-section" id="elegir-perfil">
         <div class="manual-section-heading">
-            <div><span class="manual-eyebrow">Paso 1</span><h2>¿Cuál es tu perfil?</h2><p>Selecciona la función con la que ingresas a QUORUM.</p></div>
+            <div><span class="manual-eyebrow">Paso 1</span><h2>¿Cuál es tu perfil?</h2><p>Selecciona la función con la que ingresas a DEMOCRA.</p></div>
         </div>
         <div class="profile-grid" role="list">
             <button class="profile-card" type="button" data-profile="admin" role="listitem"><i>AD</i><span><strong>Administrador</strong><small>Configuro clientes, usuarios y procesos.</small></span><b>Elegir →</b></button>
@@ -91,7 +91,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
                 </article>
 
                 <aside class="lesson-preview">
-                    <div class="preview-browser"><span></span><span></span><span></span><small>QUORUM · Vista orientativa</small></div>
+                    <div class="preview-browser"><span></span><span></span><span></span><small>DEMOCRA · Vista orientativa</small></div>
                     <div class="preview-shell">
                         <div class="preview-sidebar"><div class="preview-logo">Q</div><div data-preview-items></div></div>
                         <div class="preview-content"><small data-preview-kicker>PLATAFORMA</small><strong data-preview-title>Inicio</strong><p data-preview-description></p><div class="preview-focus"><i>→</i><span data-preview-focus></span></div></div>
@@ -127,7 +127,7 @@ $returnLabel=$manualUser?'Volver al sistema':'Ir al sistema';
     </section>
 </main>
 
-<footer class="manual-footer"><div><strong>QUORUM</strong><span>Decisiones digitales verificables</span></div><a href="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>"><?=htmlspecialchars($returnLabel,ENT_QUOTES,'UTF-8')?> →</a></footer>
+<footer class="manual-footer"><div><strong>DEMOCRA</strong><span>Decisiones digitales verificables</span></div><a href="<?=htmlspecialchars($returnPath,ENT_QUOTES,'UTF-8')?>"><?=htmlspecialchars($returnLabel,ENT_QUOTES,'UTF-8')?> →</a></footer>
 
 <dialog class="manual-dialog" data-dialog>
     <button type="button" class="dialog-close" data-close-dialog aria-label="Cerrar">×</button>

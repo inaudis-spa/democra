@@ -57,6 +57,7 @@ $eventLabels=[
     'voter.invitation_generated'=>'Invitación generada',
     'voter.otp_verified'=>'Identidad del votante verificada',
     'vote.submitted'=>'Voto registrado',
+    'vote.rejected'=>'Intento de voto rechazado',
     'results.certified'=>'Resultados certificados',
     'acta.pdf_generated'=>'Acta PDF generada',
     'manager.assigned'=>'Encargado asignado',
@@ -69,7 +70,7 @@ $eventLabels=[
     'user.status_toggled'=>'Estado de usuario actualizado',
 ];
 ?>
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auditoría | QUORUM</title><link rel="stylesheet" href="/assets/quorum.css"></head><body class="vota-ui"><div class="v-shell">
+<!doctype html><html lang="es"><head><link rel="icon" type="image/png" href="/assets/democra-mark.png"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auditoría | DEMOCRA</title><link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"></head><body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user, $electionId ? 'election-audit' : 'audit', $electionId ?: null, $election['title'] ?? null); ?>
 <div class="v-main"><header class="v-topbar"><?php if($electionId):?><a class="v-link" href="<?=$user['role']==='witness'?'/fiscalizacion.php?election_id='.$electionId:'/control.php?election_id='.$electionId?>">← Volver al proceso</a><span style="flex:1"></span><?php endif;?><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content"><div class="v-headrow"><div><div class="v-kicker">Trazabilidad</div><h1 class="v-title">Auditoría<?=$electionId?' de la votación':''?></h1><div class="v-accent-line"></div><p class="v-subtitle"><?=$electionId?'Registro limitado al proceso seleccionado.':($user['role']==='admin'?'Historial de eventos de la plataforma, 200 por página.':($user['role']==='witness'?'Actividad de tus procesos asignados.':'Actividad de tu organización.'))?></p></div><span class="v-status v-status-open">✓ Registro activo</span></div>
 <div class="v-alert" style="background:#eef6ff;border:1px solid #cfe2ff"><strong>¿Para qué sirve?</strong> Permite revisar quién realizó cada acción, cuándo ocurrió y sobre qué elemento. No permite modificar ni eliminar eventos.</div>

@@ -1,4 +1,4 @@
-# Runbook local — INAUDIS Vote MVP
+# Runbook local — DEMOCRA MVP
 
 ## Requisitos
 - Apache 2.4+
@@ -26,7 +26,7 @@ Estas credenciales son exclusivamente para desarrollo local y deben eliminarse/c
 ## Prueba de humo MVP
 1. Iniciar sesión como administrador.
 2. Revisar dashboard.
-3. Crear organización o usar `Sindicato Demo INAUDIS`.
+3. Crear organización o usar `Sindicato Demo DEMOCRA`.
 4. Crear una votación o abrir `Elección Directorio Demo 2026`.
 5. Agregar/validar preguntas y alternativas.
 6. Cargar votantes por CSV o manualmente.

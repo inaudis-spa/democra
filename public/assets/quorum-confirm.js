@@ -1,4 +1,4 @@
-/* QUORUM: confirmación accesible, sin diálogos nativos del navegador. */
+/* DEMOCRA: confirmación accesible, sin diálogos nativos del navegador. */
 (function () {
   'use strict';
   function ask(message) {

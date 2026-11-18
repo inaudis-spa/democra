@@ -1,4 +1,4 @@
-# Plan de pruebas — INAUDIS Vote MVP
+# Plan de pruebas — DEMOCRA MVP
 
 ## Objetivo
 Validar que el flujo de demostración funciona de punta a punta y que los controles mínimos de seguridad y consistencia se comportan como fueron diseñados.

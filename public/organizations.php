@@ -30,16 +30,16 @@ $organizations=OrganizationService::all();
 ?>
 <!doctype html>
 <html lang="es">
-<head>
+<head><link rel="icon" type="image/png" href="/assets/democra-mark.png">
     <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Organizaciones | QUORUM</title>
-    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/organizations.css">
+    <title>Organizaciones | DEMOCRA</title>
+    <link rel="stylesheet" href="/assets/quorum.css"><link rel="stylesheet" href="/assets/democra.css"><link rel="stylesheet" href="/assets/organizations.css">
 </head>
 <body class="vota-ui"><div class="v-shell">
 <?php Navigation::sidebar($user,'organizations'); ?>
 <div class="v-main"><header class="v-topbar"><a class="v-link" href="/logout.php">Salir</a></header><main class="v-content org-page">
     <div class="org-heading">
-        <div><div class="v-kicker">Administración INAUDIS</div><h1 class="v-title">Organizaciones</h1><div class="v-accent-line"></div><p class="v-subtitle">Gestiona clientes, plantillas y logos desde una vista compacta.</p></div>
+        <div><div class="v-kicker">Administración DEMOCRA</div><h1 class="v-title">Organizaciones</h1><div class="v-accent-line"></div><p class="v-subtitle">Gestiona clientes, plantillas y logos desde una vista compacta.</p></div>
         <span class="org-total"><?=count($organizations)?> <?=count($organizations)===1?'organización':'organizaciones'?></span>
     </div>
 
