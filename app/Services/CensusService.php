@@ -34,7 +34,15 @@ final class CensusService
         $rut=trim((string)($data['rut']??''));
         if($rut!==''&&self::normalizeRut($rut)===null)throw new \InvalidArgumentException('RUT inválido.');
         $weight=($data['vote_weight']??'')===''?1:$data['vote_weight'];
-        if(!is_numeric($weight)||(float)$weight<=0)throw new \InvalidArgumentException('El peso del voto debe ser mayor que cero.');
+        if(!is_numeric($weight)||(float)$weight<=0||!is_finite((float)$weight)||abs((float)$weight)>99999999.9999)throw new \InvalidArgumentException('El peso del voto debe estar entre 0,0001 y 99.999.999,9999.');
+        $electionId=(int)($data['election_id']??0);
+        if($electionId>0){
+            $q=Database::connection()->prepare('SELECT allow_weighted_vote FROM elections WHERE id=?');
+            $q->execute([$electionId]);
+            $weighted=$q->fetchColumn();
+            if($weighted===false)throw new \InvalidArgumentException('Votación no encontrada.');
+            if(!(int)$weighted && abs((float)$weight-1.0)>0.0000001)throw new \InvalidArgumentException('Esta votación no permite ponderar el voto.');
+        }
     }
     private static function normalizeRut(string $rut): ?string
     {
@@ -48,6 +56,7 @@ final class CensusService
     public static function add(int $electionId,array $data): int
     {
         self::requireEditable($electionId);
+        $data['election_id']=$electionId;
         $fields=CensusTemplateService::election($electionId);
         self::validateFields($data,$fields);
         $name=trim((string)($data['name']??''));$email=mb_strtolower(trim((string)($data['email']??'')));
@@ -63,7 +72,7 @@ final class CensusService
             }
             $q=$pdo->prepare('INSERT INTO census_members (election_id,rut,name,email,phone,vote_weight,segment,status) VALUES (:eid,:rut,:name,:email,:phone,:weight,:segment,"eligible")');
             $q->execute(['eid'=>$electionId,'rut'=>$normalized,'name'=>$name,'email'=>$email,'phone'=>trim((string)($data['phone']??''))?:null,'weight'=>($data['vote_weight']??'')===''?1:(float)$data['vote_weight'],'segment'=>trim((string)($data['segment']??''))?:null]);
-            $id=(int)$pdo->lastInsertId();$standard=array_flip(['rut','name','email','phone','vote_weight','segment']);
+            $id=(int)$pdo->lastInsertId();$standard=array_flip(['election_id','rut','name','email','phone','vote_weight','segment']);
             $custom=array_diff_key($data,$standard);
             $custom=array_intersect_key($custom,array_flip(array_column($fields,'key')));
             if($custom){$q=$pdo->prepare('INSERT INTO census_custom_values(census_member_id,values_json) VALUES (?,?)');$q->execute([$id,json_encode($custom,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);}
