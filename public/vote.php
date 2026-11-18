@@ -33,7 +33,79 @@ $answered=$isSequential?VotingService::answeredQuestions((int)$context['census_m
 <?php elseif($receipt && !$isSequential):?><div class="v-receipt"><div class="v-checkmark">✓</div><div class="v-kicker" style="color:var(--teal)">Proceso completado</div><h1 class="v-title">¡Tu voto fue registrado correctamente!</h1><p class="v-muted">Gracias por participar. Conserva este comprobante como respaldo.</p><div class="v-card v-pad" style="text-align:left;margin-top:24px"><strong>Comprobante de voto</strong><p class="v-muted" style="font-size:12px">Huella criptográfica SHA-256</p><div class="v-hash"><?=htmlspecialchars($receipt)?></div></div><div class="v-security" style="justify-content:center"><span>🔒 Voto seguro</span><span>✓ Identidad separada</span><span>✓ Verificable</span></div></div>
 <?php elseif(empty($context['verified_at'])&&!$context['consumed_at']):?><div class="v-kicker">Paso 1 de 2 · Identidad</div><h1 class="v-title">Verifica tu identidad</h1><div class="v-accent-line"></div><p class="v-muted">Escribe el código de 6 dígitos entregado junto con este enlace. Esto solo habilita la papeleta; todavía no registra tu voto.</p><div class="v-tip"><strong>Importante:</strong> no compartas este enlace ni el código. Si el OTP venció, solicita uno nuevo.</div><form method="post" style="margin-top:26px"><?=Csrf::input()?><input type="hidden" name="action" value="verify_otp"><input type="hidden" name="token" value="<?=htmlspecialchars($token,ENT_QUOTES)?>"><label class="v-label" for="otp">Código de verificación</label><input id="otp" class="v-field" style="font-size:25px;text-align:center;letter-spacing:.45em" name="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required placeholder="000000"><button class="v-btn v-btn-orange" style="width:100%;margin-top:18px" type="submit">Validar y continuar →</button></form><div class="v-security"><span>🔒 Conexión segura</span><span>◷ Código temporal</span></div>
 <?php elseif(!VotingService::canVote($context)):?><div class="v-alert v-alert-warn">Esta invitación no está habilitada. El proceso puede estar cerrado, fuera de horario o el voto ya fue emitido.</div>
-<?php elseif($isSequential):?><div class="v-kicker">Asamblea · Preguntas por etapas</div><h1 class="v-title"><?=htmlspecialchars((string)$context['election_title'])?></h1><div class="v-accent-line"></div><p class="v-muted">Puedes revisar todas las preguntas. Solo la habilitada por el organizador admite respuestas.</p><?php if($receipt):?><div class="v-alert v-alert-ok">✓ Respuesta registrada. Puedes permanecer aquí hasta la próxima pregunta. Comprobante: <?=htmlspecialchars($receipt)?></div><?php endif;?><?php foreach($questions as $index=>$q):$done=in_array((int)$q['id'],$answered,true);$open=$q['voting_status']==='open';?><section class="v-card v-pad" style="margin:16px 0"><div class="v-kicker">Pregunta <?=$index+1?> · <?=$done?'Respondida':($open?'Habilitada':($q['voting_status']==='closed'?'Cerrada':'Pendiente'))?></div><h2 style="font-size:19px"><?=htmlspecialchars($q['text'])?></h2><?php if($open&&!$done):?><form method="post"><?=Csrf::input()?><input type="hidden" name="action" value="vote"><input type="hidden" name="idempotency_key" value="<?=htmlspecialchars($submissionKey,ENT_QUOTES)?>"><input type="hidden" name="token" value="<?=htmlspecialchars($token,ENT_QUOTES)?>"><?php foreach($q['options'] as $o):?><label class="v-option"><input type="<?=$q['question_type']==='multiple'?'checkbox':'radio'?>" name="answers[<?=$q['id']?>][]" value="<?=$o['id']?>"><span><strong><?=htmlspecialchars($o['label'])?></strong></span></label><?php endforeach;?><?php if($q['question_type']==='multiple'):?><p class="v-muted">Selecciona entre <?=$q['min_choices']?> y <?=$q['max_choices']?> alternativas.</p><?php endif;?><button class="v-btn v-btn-orange" style="width:100%;margin-top:12px">Confirmar respuesta →</button></form><?php else:?><?php foreach($q['options'] as $o):?><div class="v-option" style="opacity:.65;cursor:default"><?=htmlspecialchars($o['label'])?></div><?php endforeach;?><p class="v-muted"><?=$done?'Tu respuesta ya fue registrada.':($open?'Espera la habilitación de tu respuesta.':'No se pueden emitir votos en esta pregunta.')?></p><?php endif;?></section><?php endforeach;?><p class="v-muted">La pantalla se actualiza automáticamente cuando no estás seleccionando una respuesta.</p><script>(()=>{function refreshWhenIdle(){const hasSelection=document.querySelector('form input[type="radio"]:checked,form input[type="checkbox"]:checked');const review=document.getElementById('vote-review');if(hasSelection||(review&&!review.hidden)){setTimeout(refreshWhenIdle,1000);return}location.reload()}setTimeout(refreshWhenIdle,5000)})();</script>
+<?php elseif($isSequential):?><?php
+$currentQuestion=null;
+foreach($questions as $q){
+    if($q['voting_status']==='open'){
+        $currentQuestion=$q;
+        break;
+    }
+}
+$currentAnswered=$currentQuestion ? in_array((int)$currentQuestion['id'],$answered,true) : false;
+?>
+<div class="v-kicker">Asamblea · Votación secuencial</div>
+<h1 class="v-title"><?=htmlspecialchars((string)$context['election_title'])?></h1>
+<div class="v-accent-line"></div>
+<?php if($receipt):?><div class="v-alert v-alert-ok">✓ Tu respuesta fue registrada correctamente. Espera la siguiente pregunta.</div><?php endif;?>
+<?php if(!$currentQuestion):?>
+    <div class="v-card v-pad" style="margin-top:24px;text-align:center">
+        <div class="v-kicker">Votación en espera</div>
+        <h2 style="font-size:22px">La siguiente pregunta aún no ha sido abierta</h2>
+        <p class="v-muted">Cuando el organizador abra la próxima pregunta, aparecerá automáticamente en esta misma papeleta.</p>
+    </div>
+<?php elseif($currentAnswered):?>
+    <div class="v-card v-pad" style="margin-top:24px;text-align:center">
+        <div class="v-kicker">Respuesta registrada</div>
+        <h2 style="font-size:22px">Esta pregunta ya fue respondida</h2>
+        <p class="v-muted">La pregunta actual permanecerá fuera de tu papeleta. Espera a que el organizador abra la siguiente.</p>
+    </div>
+<?php else:?>
+    <section class="v-card v-pad" style="margin-top:24px">
+        <div class="v-kicker">Pregunta activa</div>
+        <h2 style="font-size:22px"><?=htmlspecialchars($currentQuestion['text'])?></h2>
+        <form method="post" style="margin-top:20px">
+            <?=Csrf::input()?>
+            <input type="hidden" name="action" value="vote">
+            <input type="hidden" name="idempotency_key" value="<?=htmlspecialchars($submissionKey,ENT_QUOTES)?>">
+            <input type="hidden" name="token" value="<?=htmlspecialchars($token,ENT_QUOTES)?>">
+            <?php foreach($currentQuestion['options'] as $o):?>
+                <label class="v-option">
+                    <input type="<?=$currentQuestion['question_type']==='multiple'?'checkbox':'radio'?>" name="answers[<?=$currentQuestion['id']?>][]" value="<?=$o['id']?>">
+                    <span><strong><?=htmlspecialchars($o['label'])?></strong></span>
+                </label>
+            <?php endforeach;?>
+            <?php if($currentQuestion['question_type']==='multiple'):?>
+                <p class="v-muted">Selecciona entre <?=$currentQuestion['min_choices']?> y <?=$currentQuestion['max_choices']?> alternativas.</p>
+            <?php endif;?>
+            <button class="v-btn v-btn-orange" style="width:100%;margin-top:16px">Confirmar respuesta →</button>
+        </form>
+    </section>
+<?php endif;?>
+<p class="v-muted" style="margin-top:18px">La papeleta se actualiza automáticamente. Las preguntas anteriores y futuras no se muestran.</p>
+<script>
+(()=> {
+    let busy=false;
+    async function refreshBallot(){
+        if(busy || document.hidden) return;
+        busy=true;
+        try{
+            const url=new URL(window.location.href);
+            url.searchParams.set('_refresh',Date.now().toString());
+            const response=await fetch(url.toString(),{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok) return;
+            const html=await response.text();
+            const parser=new DOMParser();
+            const next=parser.parseFromString(html,'text/html');
+            const current=document.querySelector('main.v-voter');
+            const incoming=next.querySelector('main.v-voter');
+            if(current&&incoming&&current.innerHTML!==incoming.innerHTML) location.reload();
+        }catch(_){}
+        finally{busy=false;}
+    }
+    setInterval(refreshBallot,5000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBallot()});
+})();
+</script>
 <?php else:?><div class="v-kicker">Paso 2 de 2 · Papeleta</div><h1 class="v-title"><?=htmlspecialchars((string)$context['election_title'])?></h1><div class="v-accent-line"></div><p class="v-muted">Lee cada pregunta y selecciona tu preferencia. Puedes cambiarla antes de confirmar. Tu identidad y tu papeleta se procesan por separado.</p><form method="post" style="margin-top:24px"><?=Csrf::input()?><input type="hidden" name="action" value="vote"><input type="hidden" name="idempotency_key" value="<?=htmlspecialchars($submissionKey,ENT_QUOTES)?>"><input type="hidden" name="token" value="<?=htmlspecialchars($token,ENT_QUOTES)?>"><?php foreach($questions as $q):?><section style="margin-bottom:28px"><h2 style="font-size:18px"><?=htmlspecialchars($q['text'])?></h2><?php foreach($q['options'] as $o):?><label class="v-option"><input type="<?=$q['question_type']==='multiple'?'checkbox':'radio'?>" name="answers[<?=$q['id']?>][]" value="<?=$o['id']?>"><span><strong><?=htmlspecialchars($o['label'])?></strong></span></label><?php endforeach;?><?php if($q['question_type']==='multiple'):?><p class="v-muted" style="font-size:12px">Selecciona entre <?=$q['min_choices']?> y <?=$q['max_choices']?> alternativas.</p><?php endif;?></section><?php endforeach;?><div class="v-orange-note" style="margin-bottom:16px"><strong>Revisa antes de confirmar.</strong> Una vez emitido, el voto no podrá modificarse.</div><button class="v-btn v-btn-orange" style="width:100%;font-size:16px">Confirmar voto →</button></form>
 <?php endif;?></section></main>
 <div class="v-vote-help-overlay" data-vote-help hidden><section class="v-vote-help-modal" role="dialog" aria-modal="true" aria-labelledby="vote-help-title"><button class="v-vote-help-close" type="button" data-close-vote-help aria-label="Cerrar ayuda">×</button><div class="v-vote-help-head"><span class="v-demo-icon">?</span><div><div class="v-kicker">Ayuda para votantes</div><h2 id="vote-help-title">¿Cómo emitir tu voto?</h2></div></div><div class="v-vote-help-steps"><article><span>1</span><div><strong>Ingresa tu código</strong><p>Escribe el OTP de seis números recibido con tu invitación.</p></div></article><article><span>2</span><div><strong>Lee y selecciona</strong><p>Revisa la pregunta completa y marca la alternativa que prefieras.</p></div></article><article><span>3</span><div><strong>Revisa tu elección</strong><p>Puedes cambiar la selección antes de confirmar.</p></div></article><article><span>4</span><div><strong>Deposita tu voto</strong><p>Confirma solo cuando estés seguro. Después no podrá modificarse.</p></div></article></div><div class="v-vote-help-note">La simulación no registra votos ni utiliza tu invitación actual.</div><div class="v-vote-help-actions"><button class="v-btn v-btn-outline" type="button" data-close-vote-help>Cerrar y continuar</button><a class="v-btn v-btn-orange" href="/vote-demo.php" target="_blank">Ver voto de ejemplo →</a></div></section></div>
