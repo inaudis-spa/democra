@@ -97,7 +97,7 @@ final class CensusService
         foreach($rows as $row){
             try {
                 if($row['data']===null)throw new \InvalidArgumentException('Cantidad de columnas incorrecta.');
-                $data=$row['data'];self::validateFields($data,$fields);
+                $data=$row['data'];$data['election_id']=$electionId;self::validateFields($data,$fields);
                 $email=mb_strtolower(trim((string)($data['email']??'')));
                 if(isset($seenEmails[$email]))throw new \InvalidArgumentException('Email duplicado.');
                 $seenEmails[$email]=true;
