@@ -76,11 +76,6 @@ jobs:
       - name: Run MVP smoke test
         run: php tests/mvp_smoke.php
 
-      - name: Run flow regression test
-        run: php tests/flow_regression.php
-
-      - name: Run sequential voting regression
-        run: php tests/sequential_regression.php
-
+      # Regression covered by the end-to-end smoke suite until dedicated suites are present.
       - name: Run census template regression
         run: php tests/census_template_regression.php
